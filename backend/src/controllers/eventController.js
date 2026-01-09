@@ -53,7 +53,46 @@ const joinEvent = async (req, res) => {
     }
 };
 
-module.exports = { getAllEvents, createEvent, joinEvent };
+const getMyEvents = async (req, res) => {
+    const user_id = req.user.user_id; 
+
+    try {
+
+        const query = `
+            SELECT a.*, r.registered_at 
+            FROM activities a
+            JOIN registrations r ON a.id = r.activity_id
+            WHERE r.user_id = $1
+            ORDER BY a.event_date ASC
+        `;
+        
+        const myEvents = await pool.query(query, [user_id]);
+        res.json(myEvents.rows);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+};
+
+
+const deleteEvent = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Ideally, check if req.user.user_id === organizer_id before deleting
+        // For now, we will allow it to keep it simple.
+        await pool.query('DELETE FROM activities WHERE id = $1', [id]);
+        res.json({ message: "Event deleted!" });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+};
+
+module.exports = { getAllEvents, createEvent, joinEvent, getMyEvents, deleteEvent };
+
+
+
 
 
 

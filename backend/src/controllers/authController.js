@@ -64,5 +64,23 @@ const loginUser = async (req, res) => {
     }
 };
 
+const getMe = async (req, res) => {
+    try {
 
-module.exports = { registerUser, loginUser };
+        const user = await pool.query(
+            'SELECT id, full_name, email, flat_number, role FROM users WHERE id = $1', 
+            [req.user.user_id]
+        );
+        
+        res.json(user.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+};
+
+
+module.exports = { registerUser, loginUser, getMe }
+
+
+
