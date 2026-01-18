@@ -23,7 +23,7 @@ export default function Footer() {
 
         <div className="mt-12 border-t border-white/5 pt-8 text-center">
           <p className="text-[10px] text-gray-600 tracking-[0.2em] uppercase">
-            &copy; {new Date().getFullYear()} Reseldia Collection. All rights reserved.
+            &copy; {new Date().getFullYear()} Made by Priyanshu Srivastava
           </p>
         </div>
       </div>
