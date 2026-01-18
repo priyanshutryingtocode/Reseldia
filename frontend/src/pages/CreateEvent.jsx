@@ -9,7 +9,7 @@ export default function CreateEvent() {
     description: '',
     event_date: '',
     venue: '',
-    capacity: 50 // default
+    capacity: 50
   });
 
   const handleChange = (e) => {
@@ -24,51 +24,84 @@ export default function CreateEvent() {
       await axios.post('http://localhost:5000/api/events', formData, {
         headers: { Authorization: token }
       });
-      alert('Event Created Successfully! 🎉');
-      navigate('/dashboard'); // Go back to the board
+      navigate('/dashboard');
     } catch (err) {
       alert('Failed to create event. ' + (err.response?.data?.message || ''));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">✨ Create New Activity</h1>
+    <div className="flex items-center justify-center min-h-[80vh]">
+      <div className="bg-[#0f1115]/80 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden">
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-600 mb-1">Event Title</label>
-            <input name="title" onChange={handleChange} required className="w-full border p-2 rounded" placeholder="e.g., Sunday Yoga" />
+        <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-blue-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <h1 className="text-4xl font-serif-display text-white mb-8 text-center">New Activity</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6 font-sans-body">
+          
+          <div className="space-y-2">
+            <label className="text-gray-500 text-xs tracking-widest uppercase pl-1">Event Title</label>
+            <input 
+                name="title" 
+                onChange={handleChange} 
+                required 
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors" 
+                placeholder="e.g., Rooftop Jazz Night" 
+            />
           </div>
 
-          <div>
-            <label className="block text-gray-600 mb-1">Description</label>
-            <textarea name="description" onChange={handleChange} className="w-full border p-2 rounded" placeholder="What's happening?" />
+          <div className="space-y-2">
+            <label className="text-gray-500 text-xs tracking-widest uppercase pl-1">Description</label>
+            <textarea 
+                name="description" 
+                onChange={handleChange} 
+                rows="4"
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors resize-none" 
+                placeholder="Describe the details..." 
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-600 mb-1">Date & Time</label>
-              <input type="datetime-local" name="event_date" onChange={handleChange} required className="w-full border p-2 rounded" />
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-gray-500 text-xs tracking-widest uppercase pl-1">Date & Time</label>
+              <input 
+                type="datetime-local" 
+                name="event_date" 
+                onChange={handleChange} 
+                required 
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors [color-scheme:dark]" 
+              />
             </div>
-            <div>
-              <label className="block text-gray-600 mb-1">Capacity</label>
-              <input type="number" name="capacity" onChange={handleChange} defaultValue={50} className="w-full border p-2 rounded" />
+            <div className="space-y-2">
+              <label className="text-gray-500 text-xs tracking-widest uppercase pl-1">Capacity</label>
+              <input 
+                type="number" 
+                name="capacity" 
+                onChange={handleChange} 
+                defaultValue={50} 
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors" 
+              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-600 mb-1">Venue</label>
-            <input name="venue" onChange={handleChange} required className="w-full border p-2 rounded" placeholder="e.g., Club House" />
+          <div className="space-y-2">
+            <label className="text-gray-500 text-xs tracking-widest uppercase pl-1">Venue</label>
+            <input 
+                name="venue" 
+                onChange={handleChange} 
+                required 
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors" 
+                placeholder="e.g., The Grand Hall" 
+            />
           </div>
 
-          <div className="flex gap-4 mt-6">
-            <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold">
-              Post Event
-            </button>
-            <button type="button" onClick={() => navigate('/dashboard')} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">
+          <div className="flex gap-4 pt-6">
+            <button type="button" onClick={() => navigate('/dashboard')} className="flex-1 py-4 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 text-xs font-bold tracking-widest uppercase transition-all">
               Cancel
+            </button>
+            <button type="submit" className="flex-1 py-4 bg-white text-black hover:bg-gray-200 text-xs font-bold tracking-widest uppercase transition-all">
+              Publish Event
             </button>
           </div>
         </form>

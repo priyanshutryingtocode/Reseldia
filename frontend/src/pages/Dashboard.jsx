@@ -71,30 +71,27 @@ export default function Dashboard() {
   };
 
   if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+    <div className="flex justify-center items-center h-64 text-gray-500 animate-pulse font-sans-body">
+      Loading community events...
     </div>
   );
 
   return (
     <div>
-      {/* Note: Header Removed. It is now in Navbar.jsx */}
-      
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Explore Events</h2>
-          <p className="text-gray-500 mt-1">Discover what's happening in your community.</p>
+          <h2 className="text-4xl font-serif-display text-white mb-2">Community Events</h2>
+          <p className="text-gray-400 font-sans-body text-sm tracking-wide">Curated activities for residents</p>
         </div>
-        {/* Simple count badge */}
-        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-          {events.length} Events
-        </span>
+        <div className="text-right">
+             <span className="text-5xl font-serif-display text-white/20">{String(events.length).padStart(2, '0')}</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {events.length === 0 ? (
-           <div className="col-span-3 text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
-             <p className="text-gray-500 text-lg">No events found.</p>
+           <div className="col-span-3 text-center py-20 border border-dashed border-white/10 rounded-2xl">
+             <p className="text-gray-500 text-lg font-serif-display">No scheduled events.</p>
            </div>
         ) : (
           events.map((event) => {
@@ -102,33 +99,50 @@ export default function Dashboard() {
             const canDelete = (currentUserId === event.organizer_id) || isAdmin;
 
             return (
-              <div key={event.id} className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full border border-gray-100 group">
+              <div key={event.id} className="group flex flex-col justify-between h-full bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-2xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-500 shadow-xl">
+                
                 <div>
-                  <div className="flex justify-between items-start">
-                    <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">{event.title}</h2>
-                    <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded font-medium border border-blue-100">
-                      {new Date(event.event_date).toLocaleDateString()}
+                  <div className="flex justify-between items-start mb-6">
+                    <span className="px-3 py-1 bg-white/5 border border-white/10 text-blue-200 text-[10px] tracking-widest uppercase rounded">
+                      {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
                   </div>
-                  <p className="text-gray-600 mb-4 line-clamp-3 text-sm mt-2 leading-relaxed">{event.description}</p>
-                  <div className="flex items-center text-gray-500 text-sm mb-6">
-                    <span className="mr-2">📍</span>{event.venue}
+
+                  <h2 className="text-2xl font-serif-display text-white mb-4 leading-tight group-hover:text-blue-200 transition-colors">
+                    {event.title}
+                  </h2>
+                  
+                  <p className="text-gray-400 font-sans-body text-sm leading-relaxed mb-8 line-clamp-3">
+                    {event.description}
+                  </p>
+
+                  <div className="flex items-center text-gray-500 text-xs tracking-widest uppercase mb-8 border-t border-white/5 pt-4">
+                    <span className="mr-2">📍</span> {event.venue}
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-gray-50">
+                <div className="flex gap-4">
                   {isJoined ? (
-                    <button disabled className="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold cursor-default border border-green-200 text-sm flex items-center justify-center gap-2">
-                      <span>✓</span> Going
+                    <button disabled className="flex-1 py-3 bg-white/10 text-green-400 text-xs font-bold tracking-widest uppercase border border-green-500/20 cursor-default">
+                      Attending
                     </button>
                   ) : (
-                    <button onClick={() => handleJoin(event.id)} className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm hover:shadow-md">
+                    <button 
+                        onClick={() => handleJoin(event.id)} 
+                        className="flex-1 py-3 bg-white text-black text-xs font-bold tracking-widest uppercase hover:bg-gray-200 transition-colors"
+                    >
                       Join Event
                     </button>
                   )}
+                  
                   {canDelete && (
-                    <button onClick={() => handleDelete(event.id)} className="px-3 py-2 bg-white text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition font-medium text-sm" title="Delete Event">
-                      🗑️
+                    <button 
+                        onClick={() => handleDelete(event.id)} 
+                        className="px-4 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Delete Event"
+                    >
+                      ✕
                     </button>
                   )}
                 </div>
