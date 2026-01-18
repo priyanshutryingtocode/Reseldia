@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
+const pollRoutes = require('./src/routes/pollRoutes');
 
 
 const app = express();
@@ -19,10 +20,9 @@ app.get('/', (req, res) => {
 });
 
 
-
-
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/polls', pollRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
