@@ -1,9 +1,9 @@
 const pool = require('../../db');
 
-// --- GET ALL APPROVED EVENTS (Public) ---
+
 const getAllEvents = async (req, res) => {
     try {
-        // Only show APPROVED events to the public
+
         const allEvents = await pool.query(
             "SELECT * FROM activities WHERE status = 'approved' ORDER BY event_date ASC"
         );
@@ -14,16 +14,13 @@ const getAllEvents = async (req, res) => {
     }
 };
 
-// --- CREATE EVENT (Conditional Logic) ---
 const createEvent = async (req, res) => {
     const { title, description, event_date, venue, capacity } = req.body;
     
-    // Extracted from the token by your authMiddleware
     const { user_id, role } = req.user; 
 
     try {
-        // 1. Determine Status: Admins get instant approval, Residents get pending
-        // If role is undefined, default to 'pending'
+
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
 
         const newEvent = await pool.query(
@@ -36,7 +33,6 @@ const createEvent = async (req, res) => {
 
         const createdActivity = newEvent.rows[0];
 
-        // 2. Send appropriate response
         if (initialStatus === 'pending') {
             res.status(201).json({ 
                 message: "Event submitted! ⏳ Waiting for Admin approval.", 
@@ -55,13 +51,12 @@ const createEvent = async (req, res) => {
     }
 };
 
-// --- DELETE EVENT (Permission Check) ---
 const deleteEvent = async (req, res) => {
     const { id } = req.params;
     const { user_id, role } = req.user;
 
     try {
-        // 1. Fetch the event to see who owns it
+
         const eventCheck = await pool.query('SELECT * FROM activities WHERE id = $1', [id]);
 
         if (eventCheck.rows.length === 0) {
@@ -70,7 +65,6 @@ const deleteEvent = async (req, res) => {
 
         const activity = eventCheck.rows[0];
 
-        // 2. Authorization Logic
         const isAdmin = role === 'admin';
         const isOwner = activity.organizer_id === user_id;
 
@@ -78,7 +72,6 @@ const deleteEvent = async (req, res) => {
             return res.status(403).json({ message: "You are not authorized to delete this event." });
         }
 
-        // 3. Delete
         await pool.query('DELETE FROM activities WHERE id = $1', [id]);
         res.json({ message: "Event deleted successfully! 🗑️" });
 
@@ -88,7 +81,6 @@ const deleteEvent = async (req, res) => {
     }
 };
 
-// --- GET PENDING EVENTS (Admin Dashboard) ---
 const getPendingEvents = async (req, res) => {
     try {
         const pendingEvents = await pool.query(
@@ -101,7 +93,6 @@ const getPendingEvents = async (req, res) => {
     }
 };
 
-// --- APPROVE EVENT (Admin Action) ---
 const approveEvent = async (req, res) => {
     const { id } = req.params;
 
@@ -123,7 +114,6 @@ const approveEvent = async (req, res) => {
     }
 };
 
-// --- JOIN EVENT (Unchanged) ---
 const joinEvent = async (req, res) => {
     const { id } = req.params; 
     const user_id = req.user.user_id; 
@@ -145,7 +135,6 @@ const joinEvent = async (req, res) => {
     }
 };
 
-// --- GET MY EVENTS (Unchanged) ---
 const getMyEvents = async (req, res) => {
     const user_id = req.user.user_id; 
 
@@ -167,12 +156,29 @@ const getMyEvents = async (req, res) => {
     }
 };
 
+const getMyCreatedEvents = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        
+        const result = await pool.query(
+            'SELECT * FROM activities WHERE organizer_id = $1 ORDER BY created_at DESC',
+            [user_id]
+        );
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+};
+
 module.exports = { 
     getAllEvents, 
     createEvent, 
     joinEvent, 
     getMyEvents, 
     deleteEvent,
-    getPendingEvents, // NEW
-    approveEvent      // NEW
+    getPendingEvents, 
+    approveEvent,
+    getMyCreatedEvents 
 };

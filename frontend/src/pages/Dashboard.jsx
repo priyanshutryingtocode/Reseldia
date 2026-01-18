@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import NewsCarousel from '../components/NewsCarousel'; 
 
 export default function Dashboard() {
   const [events, setEvents] = useState([]);
@@ -13,40 +14,41 @@ export default function Dashboard() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
 
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+     const token = localStorage.getItem('token');
+     const role = localStorage.getItem('role');
 
-    if (role === 'admin') setIsAdmin(true);
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      setCurrentUserId(payload.id || payload.userId || payload.user_id);
-    } catch (e) {
-      localStorage.removeItem('token');
-      navigate('/login');
-    }
-
-    const fetchData = async () => {
-      try {
-        const config = { headers: { Authorization: token } };
-        const [allEventsRes, myEventsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/events`),
-          axios.get(`${API_URL}/api/events/my-events`, config)
-        ]);
-        setEvents(allEventsRes.data);
-        setJoinedEventIds(new Set(myEventsRes.data.map(e => e.id)));
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+     if (!token) {
+       navigate('/login');
+       return;
+     }
+ 
+     if (role === 'admin') setIsAdmin(true);
+ 
+     try {
+       const payload = JSON.parse(atob(token.split('.')[1]));
+       setCurrentUserId(payload.id || payload.userId || payload.user_id);
+     } catch (e) {
+       localStorage.removeItem('token');
+       navigate('/login');
+     }
+ 
+     const fetchData = async () => {
+       try {
+         const config = { headers: { Authorization: token } };
+         const [allEventsRes, myEventsRes] = await Promise.all([
+           axios.get(`${API_URL}/api/events`),
+           axios.get(`${API_URL}/api/events/my-events`, config)
+         ]);
+         setEvents(allEventsRes.data);
+         setJoinedEventIds(new Set(myEventsRes.data.map(e => e.id)));
+       } catch (err) {
+         console.error("Error fetching data:", err);
+       } finally {
+         setLoading(false);
+       }
+     };
+     fetchData();
   }, [navigate, API_URL]);
 
   const handleJoin = async (eventId) => {
@@ -78,6 +80,8 @@ export default function Dashboard() {
 
   return (
     <div>
+      <NewsCarousel />
+
       <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-6">
         <div>
           <h2 className="text-4xl font-serif-display text-white mb-2">Community Events</h2>
