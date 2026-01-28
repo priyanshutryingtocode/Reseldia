@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import CreateEvent from './pages/CreateEvent';
 import EventDetails from './pages/EventDetails'; 
+import { About, Privacy, Terms, Contact } from './pages/StaticPages';
 
 import Layout from './components/Layout';
 
@@ -24,6 +25,10 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/events/:id" element={<EventDetails />} /> 
+          <Route path="/about" element={<About />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/contact" element={<Contact />} />
         </Route>
       </Routes>
     </BrowserRouter>
