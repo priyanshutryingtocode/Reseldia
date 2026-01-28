@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import NewsCarousel from '../components/NewsCarousel'; 
-import PollWidget from '../components/PollWidget'; // <--- 1. Import this!
+import PollWidget from '../components/PollWidget'; 
 
 // --- Inline Comment Component ---
 function CommentSection({ eventId }) {
@@ -43,9 +43,9 @@ function CommentSection({ eventId }) {
     <div className="mt-4 border-t border-white/5 pt-4">
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="text-xs text-blue-300 hover:text-white uppercase tracking-wider mb-2"
+        className="text-[10px] text-blue-300 hover:text-white uppercase tracking-wider mb-2 flex items-center gap-1 transition-colors"
       >
-        {isOpen ? 'Hide Discussion' : 'Show Discussion'}
+        <span>{isOpen ? '✕' : '💬'}</span> {isOpen ? 'Close' : 'Discuss'}
       </button>
 
       {isOpen && (
@@ -53,7 +53,7 @@ function CommentSection({ eventId }) {
             <div className="space-y-3 max-h-40 overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-white/20 pr-2">
                 {comments.length === 0 && <p className="text-gray-500 text-xs italic">No comments yet.</p>}
                 {comments.map((c) => (
-                <div key={c.id} className="bg-black/20 p-2 rounded text-sm">
+                <div key={c.id} className="bg-black/20 p-2 rounded text-sm border border-white/5">
                     <div className="flex justify-between items-baseline mb-1">
                         <span className="text-gray-300 text-xs font-bold">{c.full_name}</span>
                         <span className="text-gray-600 text-[10px]">{new Date(c.created_at).toLocaleDateString()}</span>
@@ -64,12 +64,12 @@ function CommentSection({ eventId }) {
             </div>
             <form onSubmit={handleSubmit} className="flex gap-2">
                 <input 
-                className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none"
-                placeholder="Ask a question..."
+                className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                placeholder="Type a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 />
-                <button type="submit" className="text-[10px] bg-white text-black px-2 py-1 rounded font-bold uppercase hover:bg-gray-200">Post</button>
+                <button type="submit" className="text-[10px] bg-white text-black px-3 py-1 rounded font-bold uppercase hover:bg-gray-200 transition-colors">Post</button>
             </form>
         </div>
       )}
@@ -131,7 +131,7 @@ export default function Dashboard() {
       await axios.post(`${API_URL}/api/events/${eventId}/join`, {}, { headers: { Authorization: token } });
       setJoinedEventIds(prev => new Set(prev).add(eventId)); 
     } catch (err) {
-      alert(`⚠️ ${err.response?.data?.message || "Failed to join"}`);
+      alert(`${err.response?.data?.message || "Failed to join"}`);
     }
   };
 
@@ -153,52 +153,57 @@ export default function Dashboard() {
     return matchesSearch && matchesCategory;
   });
 
-  if (loading) return <div className="flex justify-center items-center h-64 text-gray-500 animate-pulse font-sans-body">Loading community events...</div>;
+  if (loading) return <div className="flex justify-center items-center h-64 text-gray-500 animate-pulse font-sans-body">Loading...</div>;
 
   return (
     <div>
       <NewsCarousel />
 
-      {/* --- NEW: DASHBOARD CONTROLS & POLL --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
         
-        {/* Left: Search & Filter (Takes up 2 columns) */}
-        <div className="md:col-span-2 flex flex-col justify-end">
-            <h2 className="text-4xl font-serif-display text-white mb-2">Community Events</h2>
-            <p className="text-gray-400 font-sans-body text-sm tracking-wide mb-6">Curated activities for residents</p>
-            
-            <div className="flex gap-2">
+        <div className="text-center md:text-left">
+          <h2 className="text-2xl font-serif-display text-white">Community Events</h2>
+          <p className="text-gray-400 font-sans-body text-xs tracking-widest uppercase mt-1">
+            {events.length} Active Listings
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="relative group">
                 <input 
                     type="text" 
                     placeholder="Search events..." 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-colors"
+                    className="w-full sm:w-64 bg-black/20 border border-white/10 rounded-xl px-4 py-3 pl-10 text-white text-sm focus:outline-none focus:border-white/30 focus:bg-black/40 transition-all"
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <select 
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none"
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                    <option value="All">All Categories</option>
-                    <option value="General">General</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Social">Social</option>
-                    <option value="Meeting">Meeting</option>
-                </select>
+                <span className="absolute left-3 top-3 text-gray-500 group-focus-within:text-white transition-colors">🔍</span>
             </div>
+            
+            <select 
+                className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 cursor-pointer"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+                <option value="All">All Categories</option>
+                <option value="General">General</option>
+                <option value="Sports">Sports</option>
+                <option value="Social">Social</option>
+                <option value="Meeting">Meeting</option>
+            </select>
         </div>
-
-        {/* Right: The Poll Widget (Takes up 1 column) */}
-        <div className="md:col-span-1">
-            <PollWidget /> 
-        </div>
-
       </div>
 
-      {/* --- EVENTS GRID --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* --- GRID LAYOUT --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        {/* 1. POLL WIDGET INTEGRATED AS FIRST CARD */}
+        <div className="h-full">
+            <PollWidget />
+        </div>
+
+        {/* 2. EVENT CARDS */}
         {filteredEvents.length === 0 ? (
-           <div className="col-span-3 text-center py-20 border border-dashed border-white/10 rounded-2xl">
-             <p className="text-gray-500 text-lg font-serif-display">No events found matching your search.</p>
+           <div className="col-span-1 md:col-span-2 text-center py-20 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center">
+             <p className="text-gray-500 text-lg font-serif-display">No events found.</p>
            </div>
         ) : (
           filteredEvents.map((event) => {
@@ -206,10 +211,13 @@ export default function Dashboard() {
             const canDelete = (currentUserId === event.organizer_id) || isAdmin;
 
             return (
-              <div key={event.id} className="group flex flex-col justify-between h-full bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-500 shadow-xl">
-                <div>
+              <div key={event.id} className="group flex flex-col justify-between h-full bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-2xl hover:bg-white/[0.07] hover:border-white/20 hover:-translate-y-1 transition-all duration-500 shadow-lg">
+                <div 
+                    onClick={() => navigate(`/events/${event.id}`)} 
+                    className="cursor-pointer"
+                >
                   <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-white/5 border border-white/10 text-blue-200 text-[10px] tracking-widest uppercase rounded">
+                    <span className="px-2 py-1 bg-white/5 border border-white/10 text-blue-200 text-[10px] tracking-widest uppercase rounded">
                       {event.category || 'General'}
                     </span>
                     <span className="text-xs text-gray-400 font-mono">
@@ -217,7 +225,7 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  <h2 className="text-2xl font-serif-display text-white mb-2 leading-tight group-hover:text-blue-200 transition-colors">
+                  <h2 className="text-xl font-serif-display text-white mb-2 leading-tight group-hover:text-blue-200 transition-colors">
                     {event.title}
                   </h2>
                   
@@ -231,22 +239,24 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                    <div className="flex gap-4 mb-4">
+                    <div className="flex gap-3 mb-4">
                         {isJoined ? (
-                            <button disabled className="flex-1 py-3 bg-white/10 text-green-400 text-xs font-bold tracking-widest uppercase border border-green-500/20 cursor-default">
-                            Attending
+                            <button disabled className="flex-1 py-2 bg-green-500/10 text-green-400 text-[10px] font-bold tracking-widest uppercase border border-green-500/20 cursor-default rounded">
+                                Attending
                             </button>
                         ) : (
-                            <button onClick={() => handleJoin(event.id)} className="flex-1 py-3 bg-white text-black text-xs font-bold tracking-widest uppercase hover:bg-gray-200 transition-colors">
-                            Join Event
+                            <button onClick={() => handleJoin(event.id)} className="flex-1 py-2 bg-white text-black text-[10px] font-bold tracking-widest uppercase hover:bg-gray-200 transition-colors rounded">
+                                Join
                             </button>
                         )}
-                        {canDelete && (
-                            <button onClick={() => handleDelete(event.id)} className="px-4 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">✕</button>
-                        )}
+                        <button 
+                            onClick={() => navigate(`/events/${event.id}`)} 
+                            className="px-3 py-2 border border-white/20 text-white hover:bg-white hover:text-black transition-colors rounded text-[10px] font-bold uppercase tracking-widest"
+                        >
+                            View
+                        </button>
                     </div>
                     
-                    <CommentSection eventId={event.id} />
                 </div>
               </div>
             );
