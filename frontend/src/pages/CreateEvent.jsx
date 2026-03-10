@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function CreateEvent() {
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -21,7 +22,7 @@ export default function CreateEvent() {
     const token = localStorage.getItem('token');
 
     try {
-      await axios.post('http://localhost:5000/api/events', formData, {
+      await axios.post(`${API_URL}/api/events`, formData, {
         headers: { Authorization: token }
       });
       navigate('/dashboard');
