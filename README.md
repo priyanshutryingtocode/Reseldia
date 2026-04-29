@@ -33,8 +33,7 @@ Reseldia is a scalable, full-stack event management platform designed to streaml
 ### Setup
 
 1.  **Clone the repository:**
-    ```
-bash
+    ```bash
     git clone [repository-url]
     cd Reseldia
     ```
