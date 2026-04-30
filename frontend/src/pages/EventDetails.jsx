@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// --- Inline Comment Component (Reused) ---
 function CommentSection({ eventId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -90,7 +89,6 @@ export default function EventDetails() {
         return;
     }
 
-    // Get User ID from Token
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setCurrentUser(payload.id || payload.userId || payload.user_id);
@@ -102,7 +100,7 @@ export default function EventDetails() {
         try {
             const config = { headers: { Authorization: token } };
             // 1. Fetch Event Details
-            const eventRes = await axios.get(`${API_URL}/api/events`, config); // Ideally backend has getById, filtering here for now
+            const eventRes = await axios.get(`${API_URL}/api/events`, config);
             const foundEvent = eventRes.data.find(e => e.id === parseInt(id));
             
             if (foundEvent) {
@@ -147,9 +145,7 @@ export default function EventDetails() {
 
       {/* --- HERO SECTION --- */}
       <div className="relative w-full h-[400px] rounded-3xl overflow-hidden shadow-2xl border border-white/10 mb-12">
-         {/* Background Gradient/Image Placeholder */}
          <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-purple-900">
-            {/* If you had an image URL: <img src={event.image_url} className="w-full h-full object-cover opacity-60" /> */}
             <div className="absolute inset-0 bg-black/40"></div>
          </div>
          
@@ -210,7 +206,6 @@ export default function EventDetails() {
                     </button>
                 )}
 
-                {/* Optional: Add "Export to Calendar" or "Share" buttons here */}
             </div>
         </div>
 

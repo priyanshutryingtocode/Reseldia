@@ -14,8 +14,6 @@ const registerUser = async (req, res) => {
         const saltRound = 10;
         const hashedPassword = await bcrypt.hash(password, saltRound);
 
-        // Security Note: In a real app, force 'role' to be 'resident' here 
-        // to prevent people from registering themselves as admins via Postman.
         const newUser = await pool.query(
             'INSERT INTO users (full_name, email, password_hash, flat_number, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, full_name, email, role',
             [full_name, email, hashedPassword, flat_number, role || 'resident']

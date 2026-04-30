@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import NewsCarousel from '../components/NewsCarousel'; 
 import PollWidget from '../components/PollWidget'; 
 
-// --- Inline Comment Component ---
 function CommentSection({ eventId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -192,15 +191,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* --- GRID LAYOUT --- */}
+      {/* GRID LAYOUT */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {/* 1. POLL WIDGET INTEGRATED AS FIRST CARD */}
         <div className="h-full">
             <PollWidget />
         </div>
 
-        {/* 2. EVENT CARDS */}
+        {/* EVENT CARDS */}
         {filteredEvents.length === 0 ? (
            <div className="col-span-1 md:col-span-2 text-center py-20 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center">
              <p className="text-gray-500 text-lg font-serif-display">No events found.</p>

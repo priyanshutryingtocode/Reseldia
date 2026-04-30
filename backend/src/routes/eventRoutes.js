@@ -8,9 +8,9 @@ const {
     getPendingEvents, 
     approveEvent,
     getMyCreatedEvents,
-    getEventComments,  // New
-    postComment,       // New
-    getEventAttendees  // New
+    getEventComments,  
+    postComment,       
+    getEventAttendees  
 } = require('../controllers/eventController');
 
 const authMiddleware = require('../middleware/authMiddleware'); 
@@ -30,7 +30,7 @@ router.get('/my-events', authMiddleware, getMyEvents);
 router.delete('/:id', authMiddleware, deleteEvent);
 router.get('/created-by-me', authMiddleware, getMyCreatedEvents);
 
-// New Routes for Features
+
 router.get('/:id/comments', authMiddleware, getEventComments);
 router.post('/:id/comments', authMiddleware, postComment);
 router.get('/:id/attendees', authMiddleware, getEventAttendees);

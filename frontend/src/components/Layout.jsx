@@ -6,7 +6,6 @@ const Layout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0a0c] text-white font-sans-body selection:bg-white selection:text-black">
       
-      {/* Global Styles for Fonts & Texture */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
         .font-serif-display { font-family: 'Playfair Display', serif; }
@@ -19,7 +18,6 @@ const Layout = () => {
         }
       `}</style>
 
-      {/* Global Grain Overlay */}
       <div className="fixed inset-0 bg-grain-app z-0"></div>
 
       {/* Content Wrapper */}

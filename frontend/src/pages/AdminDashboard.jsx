@@ -57,7 +57,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) return <div className="text-center mt-20 text-gray-500 animate-pulse">Loading Command Center...</div>;
+  if (loading) return <div className="text-center mt-20 text-gray-500 animate-pulse">Loading...</div>;
   
   if (error) return (
     <div className="flex flex-col items-center justify-center h-[50vh]">
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
         
       <div className="flex justify-between items-center mb-12 border-b border-white/10 pb-6">
          <div>
-            <h1 className="text-3xl font-serif-display text-white mb-2">Command Center</h1>
+            <h1 className="text-3xl font-serif-display text-white mb-2">Admin Center</h1>
             <p className="text-gray-500 text-xs tracking-widest uppercase">Moderation Dashboard</p>
          </div>
          <button onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-white text-xs tracking-widest uppercase transition-colors">

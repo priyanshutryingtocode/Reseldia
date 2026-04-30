@@ -1,9 +1,8 @@
 const pool = require('../../db');
 
-// --- GET ALL APPROVED EVENTS (Public) ---
+// GET ALL APPROVED EVENTS 
 const getAllEvents = async (req, res) => {
     try {
-        // [UPDATED] Include 'category' in the select
         const allEvents = await pool.query(
             "SELECT * FROM activities WHERE status = 'approved' ORDER BY event_date ASC"
         );
@@ -14,9 +13,8 @@ const getAllEvents = async (req, res) => {
     }
 };
 
-// --- CREATE EVENT ---
+// CREATE EVENT 
 const createEvent = async (req, res) => {
-    // [UPDATED] Added 'category'
     const { title, description, event_date, venue, capacity, category } = req.body;
     const { user_id, role } = req.user; 
 
@@ -51,7 +49,7 @@ const createEvent = async (req, res) => {
     }
 };
 
-// --- DELETE EVENT ---
+// DELETE EVENT 
 const deleteEvent = async (req, res) => {
     const { id } = req.params;
     const { user_id, role } = req.user;
@@ -80,7 +78,7 @@ const deleteEvent = async (req, res) => {
     }
 };
 
-// --- GET PENDING EVENTS ---
+// GET PENDING EVENTS
 const getPendingEvents = async (req, res) => {
     try {
         const pendingEvents = await pool.query(
@@ -93,7 +91,7 @@ const getPendingEvents = async (req, res) => {
     }
 };
 
-// --- APPROVE EVENT ---
+// APPROVE EVENT
 const approveEvent = async (req, res) => {
     const { id } = req.params;
 
@@ -115,7 +113,7 @@ const approveEvent = async (req, res) => {
     }
 };
 
-// --- JOIN EVENT ---
+// JOIN EVENT
 const joinEvent = async (req, res) => {
     const { id } = req.params; 
     const user_id = req.user.user_id; 
@@ -137,7 +135,7 @@ const joinEvent = async (req, res) => {
     }
 };
 
-// --- GET MY EVENTS (Attending) ---
+// GET MY EVENTS
 const getMyEvents = async (req, res) => {
     const user_id = req.user.user_id; 
 
@@ -159,7 +157,7 @@ const getMyEvents = async (req, res) => {
     }
 };
 
-// --- GET EVENTS I CREATED (Organizer View) ---
+// GET EVENTS I CREATED
 const getMyCreatedEvents = async (req, res) => {
     try {
         const user_id = req.user.user_id;
@@ -174,7 +172,7 @@ const getMyCreatedEvents = async (req, res) => {
     }
 };
 
-// --- [NEW] GET COMMENTS ---
+// GET COMMENTS
 const getEventComments = async (req, res) => {
     try {
         const { id } = req.params;
@@ -193,10 +191,10 @@ const getEventComments = async (req, res) => {
     }
 };
 
-// --- [NEW] POST COMMENT ---
+// POST COMMENT
 const postComment = async (req, res) => {
     try {
-        const { id } = req.params; // event id
+        const { id } = req.params; 
         const { text } = req.body;
         const user_id = req.user.user_id;
 
@@ -205,7 +203,6 @@ const postComment = async (req, res) => {
             [id, user_id, text]
         );
         
-        // Return formatted comment for immediate UI update
         const formattedComment = await pool.query(
              `SELECT c.id, c.text, c.created_at, u.full_name 
              FROM comments c 
@@ -221,7 +218,7 @@ const postComment = async (req, res) => {
     }
 };
 
-// --- [NEW] GET ATTENDEES (For Organizer) ---
+// GET ATTENDEES
 const getEventAttendees = async (req, res) => {
     try {
         const { id } = req.params;

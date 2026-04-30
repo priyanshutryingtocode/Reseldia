@@ -7,7 +7,6 @@ export default function Profile() {
   const [myCreatedEvents, setMyCreatedEvents] = useState([]);
   const [user, setUser] = useState(null);
   
-  // --- NEW STATES FOR MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [guestList, setGuestList] = useState([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
@@ -38,12 +37,11 @@ export default function Profile() {
     fetchData();
   }, [navigate, API_URL]);
 
-  // --- NEW HANDLER FOR MODAL ---
   const handleViewAttendees = async (eventId, title) => {
     setIsModalOpen(true);
     setLoadingGuests(true);
     setCurrentEventTitle(title);
-    setGuestList([]); // Clear previous list
+    setGuestList([]); 
 
     const token = localStorage.getItem('token');
     try {
@@ -71,19 +69,15 @@ export default function Profile() {
   return (
     <div className="flex flex-col items-center w-full max-w-5xl mx-auto px-4 relative">
       
-      {/* --- GUEST LIST MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop with Blur */}
             <div 
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                 onClick={() => setIsModalOpen(false)}
             ></div>
 
-            {/* Modal Content */}
             <div className="relative bg-[#0f1115] border border-white/10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
-                
-                {/* Header */}
+            
                 <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                     <div>
                         <h3 className="text-lg font-serif-display text-white">Guest List</h3>
@@ -94,7 +88,6 @@ export default function Profile() {
                     </button>
                 </div>
 
-                {/* List Area */}
                 <div className="p-0 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
                     {loadingGuests ? (
                         <div className="p-8 text-center text-gray-500 text-xs uppercase tracking-widest animate-pulse">Fetching data...</div>
@@ -124,7 +117,6 @@ export default function Profile() {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="p-4 border-t border-white/10 bg-black/20 text-center">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest">Total Guests: {guestList.length}</p>
                 </div>
@@ -132,7 +124,6 @@ export default function Profile() {
         </div>
       )}
 
-      {/* --- IDENTITY CARD --- */}
       <div className="relative w-full bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-3xl shadow-2xl mb-12 overflow-hidden group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-900/20 rounded-full blur-[80px] group-hover:bg-blue-800/30 transition-colors duration-700"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
@@ -180,7 +171,6 @@ export default function Profile() {
                                 <span>👥 Cap: {event.capacity}</span>
                             </div>
                             
-                            {/* VIEW GUEST LIST BUTTON */}
                             <button 
                                 onClick={() => handleViewAttendees(event.id, event.title)}
                                 className="w-full py-2 bg-black/30 hover:bg-black/50 text-gray-400 hover:text-white text-[10px] uppercase tracking-widest rounded border border-white/5 transition-colors flex items-center justify-center gap-2"
