@@ -10,6 +10,10 @@ const pollRoutes = require('./src/routes/pollRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+if (!process.env.JWT_SECRET) {
+    console.warn('JWT_SECRET is not set. Authenticated routes will reject requests.');
+}
+
 app.use(cors());              
 app.use(express.json());      
 

@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0a0a0c] border-t border-white/10 mt-auto backdrop-blur-sm z-10">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <footer className="bg-[#0b0c0f]/70 border-t border-white/10 mt-auto backdrop-blur-sm z-10">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           
           <div className="text-center md:text-left">
@@ -23,7 +23,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-white/5 pt-8 text-center">
+        <div className="mt-8 border-t border-white/5 pt-6 text-center">
           <p className="text-[10px] text-gray-600 tracking-[0.2em] uppercase">
             &copy; {new Date().getFullYear()} Made by Priyanshu Srivastava
           </p>

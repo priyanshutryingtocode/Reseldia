@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,11 +10,7 @@ const AdminDashboard = () => {
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  useEffect(() => {
-    fetchPendingEvents();
-  }, []);
-
-  const fetchPendingEvents = async () => {
+  const fetchPendingEvents = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if(!token) {
@@ -25,12 +21,16 @@ const AdminDashboard = () => {
         headers: { Authorization: token }
       });
       setPendingEvents(res.data);
-    } catch (err) {
+    } catch {
       setError('Access Denied. Admin privileges required.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, navigate]);
+
+  useEffect(() => {
+    fetchPendingEvents();
+  }, [fetchPendingEvents]);
 
   const handleApprove = async (id) => {
     try {
@@ -39,7 +39,7 @@ const AdminDashboard = () => {
         headers: { Authorization: token }
       });
       setPendingEvents(prev => prev.filter(event => event.id !== id));
-    } catch (err) {
+    } catch {
       alert("Error approving event");
     }
   };
@@ -52,7 +52,7 @@ const AdminDashboard = () => {
         headers: { Authorization: token }
       });
       setPendingEvents(prev => prev.filter(event => event.id !== id));
-    } catch (err) {
+    } catch {
       alert("Error deleting event");
     }
   };

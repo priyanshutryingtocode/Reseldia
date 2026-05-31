@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 export default function CommentSection({ eventId }) {
@@ -7,18 +7,20 @@ export default function CommentSection({ eventId }) {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    fetchComments();
-  }, [eventId]);
+    const fetchComments = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
+          headers: { Authorization: token }
+        });
+        setComments(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  const fetchComments = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
-        headers: { Authorization: token }
-      });
-      setComments(res.data);
-    } catch (err) { console.error(err); }
-  };
+    fetchComments();
+  }, [API_URL, eventId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +33,9 @@ export default function CommentSection({ eventId }) {
       );
       setComments([...comments, res.data]);
       setNewComment('');
-    } catch (err) { alert('Failed to post'); }
+    } catch {
+      alert('Failed to post');
+    }
   };
 
   return (

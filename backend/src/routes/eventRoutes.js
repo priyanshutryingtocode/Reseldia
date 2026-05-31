@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { 
     getAllEvents, 
     createEvent, 
+    getEventById,
     joinEvent, 
     getMyEvents, 
     deleteEvent,
@@ -29,6 +30,7 @@ router.post('/:id/join', authMiddleware, joinEvent);
 router.get('/my-events', authMiddleware, getMyEvents);
 router.delete('/:id', authMiddleware, deleteEvent);
 router.get('/created-by-me', authMiddleware, getMyCreatedEvents);
+router.get('/:id', authMiddleware, getEventById);
 
 
 router.get('/:id/comments', authMiddleware, getEventComments);

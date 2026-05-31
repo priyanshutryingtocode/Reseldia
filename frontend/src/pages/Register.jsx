@@ -10,8 +10,7 @@ export default function Register() {
     full_name: '',
     email: '',
     password: '',
-    flat_number: '',
-    role: 'resident'
+    flat_number: ''
   });
 
   const [error, setError] = useState('');

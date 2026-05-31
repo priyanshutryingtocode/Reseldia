@@ -44,7 +44,7 @@ export default function NewsCarousel() {
 
   return (
     <div 
-      className="relative w-full h-[400px] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group mb-12"
+      className="relative w-full h-[320px] md:h-[360px] rounded-lg overflow-hidden border border-white/10 group mb-8 surface"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -63,14 +63,14 @@ export default function NewsCarousel() {
                 index === currentIndex ? 'scale-110' : 'scale-100'
               }`}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0c0f] via-[#0b0c0f]/56 to-transparent"></div>
           </div>
 
-          <div className="absolute bottom-0 left-0 p-10 w-full max-w-3xl">
-            <span className="inline-block px-3 py-1 mb-4 text-[10px] font-bold tracking-widest text-blue-200 uppercase bg-blue-500/20 border border-blue-500/30 rounded backdrop-blur-md">
+          <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full max-w-3xl">
+            <span className="inline-block px-3 py-1 mb-4 text-[10px] font-bold tracking-widest text-blue-100 uppercase bg-white/10 border border-white/15 rounded backdrop-blur-md">
               {item.category}
             </span>
-            <h2 className="text-4xl md:text-5xl font-serif-display text-white mb-4 leading-tight drop-shadow-lg">
+            <h2 className="text-3xl md:text-5xl font-serif-display text-white mb-4 leading-tight drop-shadow-lg">
               {item.title}
             </h2>
             <p className="text-gray-300 font-sans-body text-sm md:text-base leading-relaxed max-w-xl">
@@ -80,7 +80,7 @@ export default function NewsCarousel() {
         </div>
       ))}
 
-      <div className="absolute bottom-10 right-10 z-20 flex gap-3">
+      <div className="absolute bottom-7 right-7 z-20 flex gap-3">
         {NEWS_ITEMS.map((_, index) => (
           <button
             key={index}

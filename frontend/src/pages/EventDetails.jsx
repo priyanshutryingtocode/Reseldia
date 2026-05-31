@@ -8,18 +8,20 @@ function CommentSection({ eventId }) {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    fetchComments();
-  }, [eventId]);
+    const fetchComments = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
+          headers: { Authorization: token }
+        });
+        setComments(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  const fetchComments = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
-        headers: { Authorization: token }
-      });
-      setComments(res.data);
-    } catch (err) { console.error(err); }
-  };
+    fetchComments();
+  }, [API_URL, eventId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,7 +34,9 @@ function CommentSection({ eventId }) {
       );
       setComments([...comments, res.data]);
       setNewComment('');
-    } catch (err) { alert('Failed to post'); }
+    } catch {
+      alert('Failed to post');
+    }
   };
 
   return (
@@ -79,7 +83,6 @@ export default function EventDetails() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -89,32 +92,20 @@ export default function EventDetails() {
         return;
     }
 
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setCurrentUser(payload.id || payload.userId || payload.user_id);
-    } catch (e) {
-        console.error("Token error");
-    }
-
     const fetchData = async () => {
         try {
             const config = { headers: { Authorization: token } };
-            // 1. Fetch Event Details
-            const eventRes = await axios.get(`${API_URL}/api/events`, config);
-            const foundEvent = eventRes.data.find(e => e.id === parseInt(id));
+            const [eventRes, myEventsRes] = await Promise.all([
+                axios.get(`${API_URL}/api/events/${id}`, config),
+                axios.get(`${API_URL}/api/events/my-events`, config)
+            ]);
             
-            if (foundEvent) {
-                setEvent(foundEvent);
-                // 2. Check if joined
-                const myEventsRes = await axios.get(`${API_URL}/api/events/my-events`, config);
-                const hasJoined = myEventsRes.data.some(e => e.id === parseInt(id));
-                setIsJoined(hasJoined);
-            } else {
-                alert("Event not found");
-                navigate('/dashboard');
-            }
+            setEvent(eventRes.data);
+            setIsJoined(myEventsRes.data.some(e => e.id === Number(id)));
         } catch (err) {
             console.error(err);
+            alert("Event not found");
+            navigate('/dashboard');
         } finally {
             setLoading(false);
         }

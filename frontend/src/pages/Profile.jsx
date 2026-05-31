@@ -49,7 +49,7 @@ export default function Profile() {
             headers: { Authorization: token }
         });
         setGuestList(res.data);
-    } catch (err) {
+    } catch {
         console.error("Failed to fetch list");
     } finally {
         setLoadingGuests(false);

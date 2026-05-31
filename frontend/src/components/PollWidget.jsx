@@ -17,7 +17,7 @@ export default function PollWidget() {
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     fetchPoll();
-  }, []);
+  }, [API_URL]);
 
   const handleVote = async (optionId) => {
       const token = localStorage.getItem('token');
@@ -27,16 +27,18 @@ export default function PollWidget() {
             { headers: { Authorization: token } }
           );
           window.location.reload(); 
-      } catch (err) { alert("Already voted!"); }
+      } catch {
+        alert("Already voted!");
+      }
   };
 
-  if (loading) return <div className="h-full bg-white/5 border border-white/10 rounded-2xl animate-pulse"></div>;
+  if (loading) return <div className="h-full surface-soft rounded-lg animate-pulse"></div>;
   if (!poll) return null;
 
   const totalVotes = poll.options.reduce((acc, curr) => acc + curr.vote_count, 0);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-white/10 p-6 rounded-2xl h-full shadow-lg flex flex-col justify-between">
+    <div className="surface p-5 rounded-lg h-full flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-center mb-4">
             <h3 className="text-white font-serif-display text-xl">Community Poll</h3>
@@ -54,7 +56,7 @@ export default function PollWidget() {
                 key={opt.id}
                 onClick={() => !poll.userVotedOptionId && handleVote(opt.id)}
                 disabled={!!poll.userVotedOptionId}
-                className={`relative w-full text-left p-3 rounded-lg border overflow-hidden ${isVoted ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10'} transition-all group`}
+                className={`relative w-full text-left p-3 rounded-md border overflow-hidden ${isVoted ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10'} transition-all group`}
                 >
                 <div className="absolute top-0 left-0 h-full bg-white/10 transition-all duration-1000" style={{ width: `${percent}%` }}></div>
                 <div className="relative flex justify-between items-center z-10">
