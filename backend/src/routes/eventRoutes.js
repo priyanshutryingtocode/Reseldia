@@ -3,33 +3,43 @@ const {
     getAllEvents, 
     createEvent, 
     getEventById,
+    updateEvent,
     joinEvent, 
     getMyEvents, 
     deleteEvent,
     getPendingEvents, 
     approveEvent,
+    rejectEvent,
     getMyCreatedEvents,
     getEventComments,  
     postComment,       
-    getEventAttendees  
+    getEventAttendees,
+    toggleBookmark,
+    getBookmarkedEvents,
+    getMyStats
 } = require('../controllers/eventController');
 
 const authMiddleware = require('../middleware/authMiddleware'); 
 const adminMiddleware = require('../middleware/adminMiddleware'); 
 
-// Public
-router.get('/', getAllEvents); 
+// Public-ish listing; auth is optional in the controller shape, but the app sends auth.
+router.get('/', authMiddleware, getAllEvents);
 
 // Admin
 router.get('/pending', authMiddleware, adminMiddleware, getPendingEvents);
 router.put('/approve/:id', authMiddleware, adminMiddleware, approveEvent);
+router.put('/reject/:id', authMiddleware, adminMiddleware, rejectEvent);
 
 // General User
 router.post('/', authMiddleware, createEvent); 
-router.post('/:id/join', authMiddleware, joinEvent);
 router.get('/my-events', authMiddleware, getMyEvents);
-router.delete('/:id', authMiddleware, deleteEvent);
 router.get('/created-by-me', authMiddleware, getMyCreatedEvents);
+router.get('/bookmarked', authMiddleware, getBookmarkedEvents);
+router.get('/stats/me', authMiddleware, getMyStats);
+router.post('/:id/join', authMiddleware, joinEvent);
+router.post('/:id/bookmark', authMiddleware, toggleBookmark);
+router.put('/:id', authMiddleware, updateEvent);
+router.delete('/:id', authMiddleware, deleteEvent);
 router.get('/:id', authMiddleware, getEventById);
 
 

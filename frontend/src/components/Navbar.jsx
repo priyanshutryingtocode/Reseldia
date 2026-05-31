@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -6,28 +6,57 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const isAdmin = localStorage.getItem('role') === 'admin';
+  const token = localStorage.getItem('token');
+
+  const unreadCount = useMemo(
+    () => notifications.filter(notification => !notification.read_at).length,
+    [notifications]
+  );
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!isAdmin || !token) return;
+    if (!token) return;
 
-    const fetchPendingCount = async () => {
+    const fetchNavData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/events/pending`, {
+        const notificationReq = axios.get(`${API_URL}/api/notifications`, {
           headers: { Authorization: token }
         });
-        setPendingCount(res.data.length);
+        const pendingReq = isAdmin
+          ? axios.get(`${API_URL}/api/events/pending`, { headers: { Authorization: token } })
+          : Promise.resolve({ data: [] });
+
+        const [notificationRes, pendingRes] = await Promise.all([notificationReq, pendingReq]);
+        setNotifications(notificationRes.data);
+        setPendingCount(pendingRes.data.length);
       } catch {
-        console.error("Failed to fetch badge count");
+        console.error("Failed to fetch navigation data");
       }
     };
 
-    fetchPendingCount();
-  }, [API_URL, isAdmin, location.pathname]);
+    fetchNavData();
+  }, [API_URL, isAdmin, location.pathname, token]);
+
+  const markNotificationsRead = async () => {
+    if (!token || unreadCount === 0) return;
+
+    try {
+      await axios.put(`${API_URL}/api/notifications/read`, {}, {
+        headers: { Authorization: token }
+      });
+      setNotifications(prev => prev.map(notification => ({
+        ...notification,
+        read_at: notification.read_at || new Date().toISOString()
+      })));
+    } catch {
+      console.error("Failed to mark notifications read");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -71,6 +100,50 @@ export default function Navbar() {
             </Link>
 
             <Link to="/profile" className={navLinkClass}>Profile</Link>
+
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setIsNotificationsOpen(prev => !prev);
+                  markNotificationsRead();
+                }}
+                className="relative text-gray-400 hover:text-white text-xs tracking-[0.18em] uppercase transition-colors"
+              >
+                Alerts
+                {unreadCount > 0 && (
+                  <span className="absolute -right-4 -top-2 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-5 w-80 surface rounded-lg overflow-hidden">
+                  <div className="p-4 border-b border-white/10">
+                    <p className="text-white text-sm font-semibold">Notifications</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-sm text-gray-500">No notifications yet.</p>
+                    ) : (
+                      notifications.map(notification => (
+                        <button
+                          key={notification.id}
+                          onClick={() => {
+                            setIsNotificationsOpen(false);
+                            if (notification.activity_id) navigate(`/events/${notification.activity_id}`);
+                          }}
+                          className="w-full text-left p-4 border-b border-white/5 hover:bg-white/5 transition-colors"
+                        >
+                          <p className="text-sm text-white">{notification.title}</p>
+                          <p className="text-xs text-gray-400 mt-1">{notification.message}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleLogout}

@@ -1,54 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
-const NEWS_ITEMS = [
+const FALLBACK_ITEMS = [
   {
-    id: 1,
+    id: 'fallback-1',
     category: "Announcement",
-    title: "Pool Maintenance Schedule",
-    description: "The main swimming pool will be closed for deep cleaning and pH balancing from Oct 10th to Oct 12th.",
-    image: "https://img.freepik.com/free-photo/umbrella-chair_74190-2092.jpg?semt=ais_hybrid&w=740&q=80",
+    title: "Welcome to Reseldia",
+    description: "Community announcements will appear here once an admin publishes them.",
+    image_url: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&q=80&w=2000",
   },
   {
-    id: 2,
+    id: 'fallback-2',
     category: "Community Event",
-    title: "Saturday Night Jazz",
-    description: "Join us at the clubhouse rooftop for an evening of smooth jazz and cocktails. 8:00 PM onwards.",
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=2000",
-  },
-  {
-    id: 3,
-    category: "Security Update",
-    title: "New Gate Access System",
-    description: "We are upgrading to biometric entry systems starting next week. Please register your fingerprints at the office.",
-    image: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=2000",
+    title: "Plan the Next Gathering",
+    description: "Create events, track RSVPs, and keep everyone in the loop from one shared board.",
+    image_url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=2000",
   }
 ];
 
 export default function NewsCarousel() {
+  const [items, setItems] = useState(FALLBACK_ITEMS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await axios.get(`${API_URL}/api/announcements`, {
+          headers: { Authorization: token }
+        });
+        if (res.data.length > 0) {
+          setItems(res.data);
+          setCurrentIndex(0);
+        }
+      } catch {
+        setItems(FALLBACK_ITEMS);
+      }
+    };
+
+    fetchAnnouncements();
+  }, [API_URL]);
 
   useEffect(() => {
     if (isPaused) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % NEWS_ITEMS.length);
-    }, 5000); 
+      setCurrentIndex((prev) => (prev + 1) % items.length);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isPaused]);
-
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-  };
+  }, [isPaused, items.length]);
 
   return (
-    <div 
+    <div
       className="relative w-full h-[320px] md:h-[360px] rounded-lg overflow-hidden border border-white/10 group mb-8 surface"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {NEWS_ITEMS.map((item, index) => (
+      {items.map((item, index) => (
         <div
           key={item.id}
           className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -56,9 +67,9 @@ export default function NewsCarousel() {
           }`}
         >
           <div className="absolute inset-0 bg-black">
-            <img 
-              src={item.image} 
-              alt={item.title} 
+            <img
+              src={item.image_url || FALLBACK_ITEMS[index % FALLBACK_ITEMS.length].image_url}
+              alt={item.title}
               className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${
                 index === currentIndex ? 'scale-110' : 'scale-100'
               }`}
@@ -81,26 +92,25 @@ export default function NewsCarousel() {
       ))}
 
       <div className="absolute bottom-7 right-7 z-20 flex gap-3">
-        {NEWS_ITEMS.map((_, index) => (
+        {items.map((_, index) => (
           <button
             key={index}
-            onClick={() => goToSlide(index)}
+            onClick={() => setCurrentIndex(index)}
             className={`h-1 transition-all duration-500 rounded-full ${
-              index === currentIndex 
-                ? 'w-8 bg-white' 
-                : 'w-2 bg-white/30 hover:bg-white/60'
+              index === currentIndex ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/60'
             }`}
+            aria-label={`Show announcement ${index + 1}`}
           />
         ))}
       </div>
 
       <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5 z-20">
-         <div 
-           key={currentIndex} 
-           className={`h-full bg-blue-500/50 ${!isPaused ? 'animate-[progress_5s_linear]' : 'w-full'}`}
-         ></div>
+        <div
+          key={currentIndex}
+          className={`h-full bg-blue-500/50 ${!isPaused ? 'animate-[progress_5s_linear]' : 'w-full'}`}
+        ></div>
       </div>
-      
+
       <style>{`
         @keyframes progress {
           from { width: 0%; }
