@@ -38,13 +38,11 @@ router.get('/bookmarked', authMiddleware, getBookmarkedEvents);
 router.get('/stats/me', authMiddleware, getMyStats);
 router.post('/:id/join', authMiddleware, joinEvent);
 router.post('/:id/bookmark', authMiddleware, toggleBookmark);
-router.put('/:id', authMiddleware, updateEvent);
-router.delete('/:id', authMiddleware, deleteEvent);
-router.get('/:id', authMiddleware, getEventById);
-
-
 router.get('/:id/comments', authMiddleware, getEventComments);
 router.post('/:id/comments', authMiddleware, postComment);
 router.get('/:id/attendees', authMiddleware, getEventAttendees);
+router.put('/:id', authMiddleware, updateEvent);
+router.delete('/:id', authMiddleware, deleteEvent);
+router.get('/:id', authMiddleware, getEventById);
 
 module.exports = router;

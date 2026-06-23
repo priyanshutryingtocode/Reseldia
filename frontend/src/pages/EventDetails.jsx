@@ -101,19 +101,25 @@ export default function EventDetails() {
     }
 
     const fetchData = async () => {
-      try {
-        const config = { headers: { Authorization: token } };
-        const [eventRes, myEventsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/events/${id}`, config),
-          axios.get(`${API_URL}/api/events/my-events`, config)
-        ]);
+      const config = { headers: { Authorization: token } };
 
+      try {
+        const eventRes = await axios.get(`${API_URL}/api/events/${id}`, config);
         setEvent(eventRes.data);
+      } catch (err) {
+        console.error('Failed to load event details:', err);
+        const status = err.response?.status;
+        const details = err.response?.data?.message || err.response?.data?.msg || err.response?.data?.error || err.message;
+        alert(`Could not load event${status ? ` (${status})` : ''}: ${details}`);
+        navigate('/dashboard');
+        return;
+      }
+
+      try {
+        const myEventsRes = await axios.get(`${API_URL}/api/events/my-events`, config);
         setIsJoined(myEventsRes.data.some(joinedEvent => joinedEvent.id === Number(id)));
       } catch (err) {
-        console.error(err);
-        alert("Event not found");
-        navigate('/dashboard');
+        console.warn('Could not check RSVP status:', err);
       } finally {
         setLoading(false);
       }

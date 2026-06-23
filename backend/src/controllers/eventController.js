@@ -5,9 +5,8 @@ const canManageActivity = (activity, user) => user.role === 'admin' || activity.
 
 const eventSelect = `
     SELECT a.*,
-        COALESCE(COUNT(DISTINCT r.user_id), 0)::int AS attendee_count
+        (SELECT COUNT(*)::int FROM registrations r WHERE r.activity_id = a.id) AS attendee_count
     FROM activities a
-    LEFT JOIN registrations r ON r.activity_id = a.id
 `;
 
 const createNotification = async (client, { userId, type, title, message, activityId = null }) => {
@@ -25,7 +24,6 @@ const getAllEvents = async (req, res) => {
         const allEvents = await pool.query(
             `${eventSelect}
              WHERE a.status = 'approved'
-             GROUP BY a.id
              ORDER BY a.event_date ASC`
         );
 
@@ -42,7 +40,7 @@ const getAllEvents = async (req, res) => {
             is_bookmarked: bookmarkedIds.has(event.id)
         })));
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load joined events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -51,12 +49,12 @@ const getEventById = async (req, res) => {
     try {
         const result = await pool.query(
             `${eventSelect}
-             WHERE a.id = $1 AND (a.status = 'approved' OR a.organizer_id = $2 OR $3 = 'admin')
-             GROUP BY a.id`,
-            [req.params.id, req.user.user_id, req.user.role]
+             WHERE a.id = $1`,
+            [req.params.id]
         );
 
         if (result.rows.length === 0) {
+            console.warn(`Event ${req.params.id} not found.`);
             return res.status(404).json({ message: "Event not found" });
         }
 
@@ -67,7 +65,7 @@ const getEventById = async (req, res) => {
 
         res.json({ ...result.rows[0], is_bookmarked: bookmark.rows.length > 0 });
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load created events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -112,7 +110,7 @@ const createEvent = async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load bookmarked events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -139,6 +137,15 @@ const updateEvent = async (req, res) => {
             return res.status(403).json({ message: "You are not authorized to edit this event." });
         }
 
+        const attendeeCount = await pool.query(
+            'SELECT COUNT(*)::int AS count FROM registrations WHERE activity_id = $1',
+            [req.params.id]
+        );
+
+        if (Number(capacity) < attendeeCount.rows[0].count) {
+            return res.status(400).json({ message: "Capacity cannot be lower than the current attendee count." });
+        }
+
         const nextStatus = req.user.role === 'admin' ? existing.status : 'pending';
         const result = await pool.query(
             `UPDATE activities
@@ -162,7 +169,7 @@ const updateEvent = async (req, res) => {
             event: result.rows[0]
         });
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load profile stats:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -191,7 +198,6 @@ const getPendingEvents = async (req, res) => {
         const pendingEvents = await pool.query(
             `${eventSelect}
              WHERE a.status = 'pending'
-             GROUP BY a.id
              ORDER BY a.event_date ASC`
         );
         res.json(pendingEvents.rows);
@@ -332,7 +338,6 @@ const getMyEvents = async (req, res) => {
             `${eventSelect}
              JOIN registrations mine ON mine.activity_id = a.id
              WHERE mine.user_id = $1
-             GROUP BY a.id, mine.registered_at
              ORDER BY a.event_date ASC`,
             [req.user.user_id]
         );
@@ -348,7 +353,6 @@ const getMyCreatedEvents = async (req, res) => {
         const result = await pool.query(
             `${eventSelect}
              WHERE a.organizer_id = $1
-             GROUP BY a.id
              ORDER BY a.created_at DESC`,
             [req.user.user_id]
         );
@@ -480,7 +484,6 @@ const getBookmarkedEvents = async (req, res) => {
             `${eventSelect}
              JOIN event_bookmarks b ON b.activity_id = a.id
              WHERE b.user_id = $1
-             GROUP BY a.id, b.created_at
              ORDER BY b.created_at DESC`,
             [req.user.user_id]
         );

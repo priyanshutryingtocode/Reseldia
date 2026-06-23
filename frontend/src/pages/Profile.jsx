@@ -8,6 +8,7 @@ export default function Profile() {
   const [savedEvents, setSavedEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [user, setUser] = useState(null);
+  const [profileError, setProfileError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [guestList, setGuestList] = useState([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
@@ -26,21 +27,44 @@ export default function Profile() {
     const fetchData = async () => {
       try {
         const config = { headers: { Authorization: token } };
-        const [userRes, joinedRes, createdRes, savedRes, statsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/auth/me`, config),
-          axios.get(`${API_URL}/api/events/my-events`, config),
-          axios.get(`${API_URL}/api/events/created-by-me`, config),
-          axios.get(`${API_URL}/api/events/bookmarked`, config),
-          axios.get(`${API_URL}/api/events/stats/me`, config)
-        ]);
-
+        const userRes = await axios.get(`${API_URL}/api/auth/me`, config);
         setUser(userRes.data);
-        setMyJoinedEvents(joinedRes.data);
-        setMyCreatedEvents(createdRes.data);
-        setSavedEvents(savedRes.data);
-        setStats(statsRes.data);
+
+        const sectionRequests = [
+          ['attending events', axios.get(`${API_URL}/api/events/my-events`, config)],
+          ['created events', axios.get(`${API_URL}/api/events/created-by-me`, config)],
+          ['saved events', axios.get(`${API_URL}/api/events/bookmarked`, config)],
+          ['profile stats', axios.get(`${API_URL}/api/events/stats/me`, config)]
+        ];
+
+        const [joinedRes, createdRes, savedRes, statsRes] = await Promise.allSettled(
+          sectionRequests.map(([, request]) => request)
+        );
+
+        if (joinedRes.status === 'fulfilled') setMyJoinedEvents(joinedRes.value.data);
+        if (createdRes.status === 'fulfilled') setMyCreatedEvents(createdRes.value.data);
+        if (savedRes.status === 'fulfilled') setSavedEvents(savedRes.value.data);
+        if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+
+        const failedSections = [joinedRes, createdRes, savedRes, statsRes]
+          .map((result, index) => result.status === 'rejected' ? sectionRequests[index][0] : null)
+          .filter(Boolean);
+
+        if (failedSections.length > 0) {
+          console.warn('Profile sections failed to load:', failedSections);
+          setProfileError(`Could not load: ${failedSections.join(', ')}.`);
+        } else {
+          setProfileError('');
+        }
       } catch (err) {
         console.error(err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          navigate('/login');
+          return;
+        }
+        setProfileError('Unable to load your profile.');
       }
     };
 
@@ -74,7 +98,14 @@ export default function Profile() {
     }
   };
 
-  if (!user) return <div className="text-center mt-20 text-gray-400 font-sans-body animate-pulse">Loading identity...</div>;
+  if (!user) {
+    return (
+      <div className="text-center mt-20">
+        <p className="text-gray-400 font-sans-body animate-pulse">Loading identity...</p>
+        {profileError && <p className="text-yellow-200 text-sm mt-4">{profileError}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center w-full max-w-6xl mx-auto px-4 relative">
@@ -143,6 +174,12 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {profileError && (
+        <div className="w-full mb-6 border border-yellow-500/20 bg-yellow-500/10 text-yellow-200 rounded-lg px-4 py-3 text-sm">
+          {profileError}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full mb-10">
         {[
