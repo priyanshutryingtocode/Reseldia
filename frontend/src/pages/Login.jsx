@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -9,7 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,16 +23,16 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, formData);
+      const response = await api.post('/api/auth/login', formData);
       const { token, role } = response.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', role); 
-      
+      showToast('Welcome back.', 'success');
       navigate('/dashboard');
       
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed.');
+      setError(getErrorMessage(err, 'Login failed.'));
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all duration-300"
-                placeholder="••••••••"
+                placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
                 required

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 const emptyAnnouncement = {
   title: '',
@@ -18,11 +19,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-  const authConfig = useCallback(() => ({
-    headers: { Authorization: localStorage.getItem('token') }
-  }), []);
+  const { showToast } = useToast();
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -33,8 +30,8 @@ const AdminDashboard = () => {
       }
 
       const [pendingRes, announcementRes] = await Promise.all([
-        axios.get(`${API_URL}/api/events/pending`, authConfig()),
-        axios.get(`${API_URL}/api/announcements/all`, authConfig())
+        api.get('/api/events/pending'),
+        api.get('/api/announcements/all')
       ]);
       setPendingEvents(pendingRes.data);
       setAnnouncements(announcementRes.data);
@@ -43,7 +40,7 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, authConfig, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     fetchAdminData();
@@ -51,20 +48,22 @@ const AdminDashboard = () => {
 
   const handleApprove = async (id) => {
     try {
-      await axios.put(`${API_URL}/api/events/approve/${id}`, {}, authConfig());
+      await api.put(`/api/events/approve/${id}`);
       setPendingEvents(prev => prev.filter(event => event.id !== id));
-    } catch {
-      alert("Error approving event");
+      showToast('Event approved.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Error approving event.'), 'error');
     }
   };
 
   const handleReject = async (id) => {
     if (!window.confirm("Reject this event?")) return;
     try {
-      await axios.put(`${API_URL}/api/events/reject/${id}`, {}, authConfig());
+      await api.put(`/api/events/reject/${id}`);
       setPendingEvents(prev => prev.filter(event => event.id !== id));
-    } catch {
-      alert("Error rejecting event");
+      showToast('Event rejected.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Error rejecting event.'), 'error');
     }
   };
 
@@ -72,8 +71,8 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       const request = editingAnnouncementId
-        ? axios.put(`${API_URL}/api/announcements/${editingAnnouncementId}`, announcementForm, authConfig())
-        : axios.post(`${API_URL}/api/announcements`, announcementForm, authConfig());
+        ? api.put(`/api/announcements/${editingAnnouncementId}`, announcementForm)
+        : api.post('/api/announcements', announcementForm);
       const res = await request;
 
       setAnnouncements(prev => {
@@ -84,8 +83,9 @@ const AdminDashboard = () => {
       });
       setAnnouncementForm(emptyAnnouncement);
       setEditingAnnouncementId(null);
+      showToast(editingAnnouncementId ? 'Announcement updated.' : 'Announcement published.', 'success');
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to save announcement");
+      showToast(getErrorMessage(err, 'Failed to save announcement.'), 'error');
     }
   };
 
@@ -103,10 +103,11 @@ const AdminDashboard = () => {
   const deleteAnnouncement = async (id) => {
     if (!window.confirm("Delete this announcement?")) return;
     try {
-      await axios.delete(`${API_URL}/api/announcements/${id}`, authConfig());
+      await api.delete(`/api/announcements/${id}`);
       setAnnouncements(prev => prev.filter(item => item.id !== id));
-    } catch {
-      alert("Failed to delete announcement");
+      showToast('Announcement deleted.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to delete announcement.'), 'error');
     }
   };
 

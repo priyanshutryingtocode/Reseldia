@@ -1,34 +1,36 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from './toastContext';
 
 export default function PollWidget() {
   const [poll, setPoll] = useState(null);
   const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchPoll = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/polls/active`, {
-             headers: { Authorization: token }
-        });
+        const res = await api.get('/api/polls/active');
         setPoll(res.data);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     fetchPoll();
-  }, [API_URL]);
+  }, []);
 
   const handleVote = async (optionId) => {
-      const token = localStorage.getItem('token');
       try {
-          await axios.post(`${API_URL}/api/polls/vote`, 
-            { pollId: poll.id, optionId }, 
-            { headers: { Authorization: token } }
-          );
-          window.location.reload(); 
-      } catch {
-        alert("Already voted!");
+          await api.post('/api/polls/vote', { pollId: poll.id, optionId });
+          setPoll(prev => ({
+            ...prev,
+            userVotedOptionId: optionId,
+            options: prev.options.map(option => option.id === optionId
+              ? { ...option, vote_count: Number(option.vote_count) + 1 }
+              : option
+            )
+          }));
+          showToast('Vote recorded.', 'success');
+      } catch (err) {
+        showToast(getErrorMessage(err, 'Already voted or invalid poll.'), 'error');
       }
   };
 

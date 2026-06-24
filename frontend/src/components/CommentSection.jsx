@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from './toastContext';
 
 export default function CommentSection({ eventId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchComments = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
-          headers: { Authorization: token }
-        });
+        const res = await api.get(`/api/events/${eventId}/comments`);
         setComments(res.data);
       } catch (err) {
         console.error(err);
@@ -20,21 +18,18 @@ export default function CommentSection({ eventId }) {
     };
 
     fetchComments();
-  }, [API_URL, eventId]);
+  }, [eventId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(`${API_URL}/api/events/${eventId}/comments`, 
-        { text: newComment }, 
-        { headers: { Authorization: token } }
-      );
+      const res = await api.post(`/api/events/${eventId}/comments`, { text: newComment });
       setComments([...comments, res.data]);
       setNewComment('');
-    } catch {
-      alert('Failed to post');
+      showToast('Comment posted.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to post comment.'), 'error');
     }
   };
 

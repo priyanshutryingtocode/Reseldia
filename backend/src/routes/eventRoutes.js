@@ -10,6 +10,8 @@ const {
     getPendingEvents, 
     approveEvent,
     rejectEvent,
+    cancelEvent,
+    completeEvent,
     getMyCreatedEvents,
     getEventComments,  
     postComment,       
@@ -41,6 +43,8 @@ router.post('/:id/bookmark', authMiddleware, toggleBookmark);
 router.get('/:id/comments', authMiddleware, getEventComments);
 router.post('/:id/comments', authMiddleware, postComment);
 router.get('/:id/attendees', authMiddleware, getEventAttendees);
+router.put('/:id/cancel', authMiddleware, cancelEvent);
+router.put('/:id/complete', authMiddleware, completeEvent);
 router.put('/:id', authMiddleware, updateEvent);
 router.delete('/:id', authMiddleware, deleteEvent);
 router.get('/:id', authMiddleware, getEventById);

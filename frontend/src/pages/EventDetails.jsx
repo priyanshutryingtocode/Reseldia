@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 function CommentSection({ eventId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchComments = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
-          headers: { Authorization: token }
-        });
+        const res = await api.get(`/api/events/${eventId}/comments`);
         setComments(res.data);
       } catch (err) {
         console.error(err);
@@ -21,23 +19,19 @@ function CommentSection({ eventId }) {
     };
 
     fetchComments();
-  }, [API_URL, eventId]);
+  }, [eventId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(
-        `${API_URL}/api/events/${eventId}/comments`,
-        { text: newComment },
-        { headers: { Authorization: token } }
-      );
+      const res = await api.post(`/api/events/${eventId}/comments`, { text: newComment });
       setComments(prev => [...prev, res.data]);
       setNewComment('');
-    } catch {
-      alert('Failed to post');
+      showToast('Comment posted.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to post comment.'), 'error');
     }
   };
 
@@ -79,10 +73,10 @@ function CommentSection({ eventId }) {
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const currentUserId = (() => {
     try {
       const token = localStorage.getItem('token');
@@ -101,22 +95,20 @@ export default function EventDetails() {
     }
 
     const fetchData = async () => {
-      const config = { headers: { Authorization: token } };
-
       try {
-        const eventRes = await axios.get(`${API_URL}/api/events/${id}`, config);
+        const eventRes = await api.get(`/api/events/${id}`);
         setEvent(eventRes.data);
       } catch (err) {
         console.error('Failed to load event details:', err);
         const status = err.response?.status;
-        const details = err.response?.data?.message || err.response?.data?.msg || err.response?.data?.error || err.message;
-        alert(`Could not load event${status ? ` (${status})` : ''}: ${details}`);
+        const details = getErrorMessage(err, 'Event not found');
+        showToast(`Could not load event${status ? ` (${status})` : ''}: ${details}`, 'error');
         navigate('/dashboard');
         return;
       }
 
       try {
-        const myEventsRes = await axios.get(`${API_URL}/api/events/my-events`, config);
+        const myEventsRes = await api.get('/api/events/my-events');
         setIsJoined(myEventsRes.data.some(joinedEvent => joinedEvent.id === Number(id)));
       } catch (err) {
         console.warn('Could not check RSVP status:', err);
@@ -126,26 +118,36 @@ export default function EventDetails() {
     };
 
     fetchData();
-  }, [API_URL, id, navigate]);
+  }, [id, navigate, showToast]);
 
   const handleJoin = async () => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_URL}/api/events/${id}/join`, {}, { headers: { Authorization: token } });
+      await api.post(`/api/events/${id}/join`);
       setIsJoined(true);
       setEvent(prev => ({ ...prev, attendee_count: Number(prev.attendee_count || 0) + 1 }));
+      showToast('You joined this event.', 'success');
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to join");
+      showToast(getErrorMessage(err, 'Failed to join event.'), 'error');
     }
   };
 
   const handleBookmark = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(`${API_URL}/api/events/${id}/bookmark`, {}, { headers: { Authorization: token } });
+      const res = await api.post(`/api/events/${id}/bookmark`);
       setEvent(prev => ({ ...prev, is_bookmarked: res.data.bookmarked }));
-    } catch {
-      alert("Failed to update saved event.");
+      showToast(res.data.bookmarked ? 'Event saved.' : 'Event removed from saved.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to update saved event.'), 'error');
+    }
+  };
+
+  const updateLifecycle = async (action, successMessage) => {
+    try {
+      const res = await api.put(`/api/events/${id}/${action}`);
+      setEvent(prev => ({ ...prev, ...res.data.event }));
+      showToast(successMessage, 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, `Failed to ${action} event.`), 'error');
     }
   };
 
@@ -227,6 +229,18 @@ export default function EventDetails() {
               {canEdit && (
                 <button onClick={() => navigate(`/events/${event.id}/edit`)} className="w-full py-3 border border-blue-300/20 text-blue-200 hover:bg-blue-500/10 rounded-md text-xs uppercase tracking-widest transition-colors">
                   Edit Event
+                </button>
+              )}
+
+              {canEdit && !['cancelled', 'completed'].includes(event.status) && (
+                <button onClick={() => updateLifecycle('cancel', 'Event cancelled.')} className="w-full py-3 border border-red-300/20 text-red-200 hover:bg-red-500/10 rounded-md text-xs uppercase tracking-widest transition-colors">
+                  Cancel Event
+                </button>
+              )}
+
+              {canEdit && event.status === 'approved' && (
+                <button onClick={() => updateLifecycle('complete', 'Event marked as completed.')} className="w-full py-3 border border-green-300/20 text-green-200 hover:bg-green-500/10 rounded-md text-xs uppercase tracking-widest transition-colors">
+                  Mark Completed
                 </button>
               )}
             </div>

@@ -277,6 +277,37 @@ const rejectEvent = async (req, res) => {
     }
 };
 
+const updateEventLifecycleStatus = async (req, res, nextStatus, message) => {
+    try {
+        const eventCheck = await pool.query('SELECT * FROM activities WHERE id = $1', [req.params.id]);
+        if (eventCheck.rows.length === 0) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        if (!canManageActivity(eventCheck.rows[0], req.user)) {
+            return res.status(403).json({ message: "You are not authorized to update this event." });
+        }
+
+        const result = await pool.query(
+            'UPDATE activities SET status = $1 WHERE id = $2 RETURNING *',
+            [nextStatus, req.params.id]
+        );
+
+        res.json({ message, event: result.rows[0] });
+    } catch (err) {
+        console.error(`Failed to mark event ${nextStatus}:`, err.message);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+const cancelEvent = (req, res) => {
+    return updateEventLifecycleStatus(req, res, 'cancelled', 'Event cancelled.');
+};
+
+const completeEvent = (req, res) => {
+    return updateEventLifecycleStatus(req, res, 'completed', 'Event marked as completed.');
+};
+
 const joinEvent = async (req, res) => {
     const client = await pool.connect();
 
@@ -523,6 +554,8 @@ module.exports = {
     getPendingEvents,
     approveEvent,
     rejectEvent,
+    cancelEvent,
+    completeEvent,
     getMyCreatedEvents,
     getEventComments,
     postComment,

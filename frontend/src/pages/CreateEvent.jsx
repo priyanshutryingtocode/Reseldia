@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 const toDateTimeLocal = (value) => {
   if (!value) return '';
@@ -14,7 +15,7 @@ export default function CreateEvent() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,16 +25,14 @@ export default function CreateEvent() {
     category: 'General'
   });
   const [loading, setLoading] = useState(isEditing);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     if (!isEditing) return;
 
     const fetchEvent = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/events/${id}`, {
-          headers: { Authorization: token }
-        });
+        const res = await api.get(`/api/events/${id}`);
         setFormData({
           title: res.data.title || '',
           description: res.data.description || '',
@@ -42,8 +41,9 @@ export default function CreateEvent() {
           capacity: res.data.capacity || 50,
           category: res.data.category || 'General'
         });
-      } catch {
-        alert('Unable to load this event.');
+        setStatus(res.data.status || '');
+      } catch (err) {
+        showToast(getErrorMessage(err, 'Unable to load this event.'), 'error');
         navigate('/dashboard');
       } finally {
         setLoading(false);
@@ -51,7 +51,7 @@ export default function CreateEvent() {
     };
 
     fetchEvent();
-  }, [API_URL, id, isEditing, navigate]);
+  }, [id, isEditing, navigate, showToast]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -59,17 +59,17 @@ export default function CreateEvent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
 
     try {
       const request = isEditing
-        ? axios.put(`${API_URL}/api/events/${id}`, formData, { headers: { Authorization: token } })
-        : axios.post(`${API_URL}/api/events`, formData, { headers: { Authorization: token } });
+        ? api.put(`/api/events/${id}`, formData)
+        : api.post('/api/events', formData);
 
       await request;
+      showToast(isEditing ? 'Event updated.' : 'Event submitted.', 'success');
       navigate(isEditing ? `/events/${id}` : '/dashboard');
     } catch (err) {
-      alert(`Failed to ${isEditing ? 'update' : 'create'} event. ${err.response?.data?.message || ''}`);
+      showToast(getErrorMessage(err, `Failed to ${isEditing ? 'update' : 'create'} event.`), 'error');
     }
   };
 
@@ -80,6 +80,11 @@ export default function CreateEvent() {
       <div className="surface w-full max-w-2xl rounded-lg p-8 md:p-10">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-serif-display text-white">{isEditing ? 'Edit Activity' : 'New Activity'}</h1>
+          {status && (
+            <span className="inline-block mt-3 px-3 py-1 text-[10px] tracking-widest uppercase rounded-full border border-white/10 text-gray-300 bg-white/5">
+              {status}
+            </span>
+          )}
           <p className="text-gray-500 text-xs uppercase tracking-widest mt-2">
             {isEditing ? 'Organizer edits return to moderation unless you are admin' : 'Submit an event for your community'}
           </p>

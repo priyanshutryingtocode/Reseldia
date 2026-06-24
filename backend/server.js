@@ -7,6 +7,8 @@ const eventRoutes = require('./src/routes/eventRoutes');
 const pollRoutes = require('./src/routes/pollRoutes');
 const announcementRoutes = require('./src/routes/announcementRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const healthRoutes = require('./src/routes/healthRoutes');
+const { notFound, errorHandler } = require('./src/middleware/errorMiddleware');
 
 
 const app = express();
@@ -16,7 +18,14 @@ if (!process.env.JWT_SECRET) {
     console.warn('JWT_SECRET is not set. Authenticated routes will reject requests.');
 }
 
-app.use(cors());              
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true
+}));
 app.use(express.json());      
 
 const initFeatureTables = require('./src/db/initFeatureTables');
@@ -31,6 +40,10 @@ app.use('/api/events', eventRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/health', healthRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
 
 const startServer = async () => {
     try {

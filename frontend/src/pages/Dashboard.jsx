@@ -1,24 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import NewsCarousel from '../components/NewsCarousel';
 import PollWidget from '../components/PollWidget';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 function CommentSection({ eventId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!isOpen) return;
 
     const fetchComments = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/events/${eventId}/comments`, {
-          headers: { Authorization: token }
-        });
+        const res = await api.get(`/api/events/${eventId}/comments`);
         setComments(res.data);
       } catch (err) {
         console.error(err);
@@ -26,23 +24,19 @@ function CommentSection({ eventId }) {
     };
 
     fetchComments();
-  }, [API_URL, eventId, isOpen]);
+  }, [eventId, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(
-        `${API_URL}/api/events/${eventId}/comments`,
-        { text: newComment },
-        { headers: { Authorization: token } }
-      );
+      const res = await api.post(`/api/events/${eventId}/comments`, { text: newComment });
       setComments(prev => [...prev, res.data]);
       setNewComment('');
-    } catch {
-      alert('Failed to post');
+      showToast('Comment posted.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to post comment.'), 'error');
     }
   };
 
@@ -173,7 +167,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid');
 
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -197,10 +191,9 @@ export default function Dashboard() {
 
     const fetchData = async () => {
       try {
-        const config = { headers: { Authorization: token } };
         const [allEventsRes, myEventsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/events`, config),
-          axios.get(`${API_URL}/api/events/my-events`, config)
+          api.get('/api/events'),
+          api.get('/api/events/my-events')
         ]);
         setEvents(allEventsRes.data);
         setJoinedEventIds(new Set(myEventsRes.data.map(event => event.id)));
@@ -212,7 +205,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, [API_URL, navigate]);
+  }, [navigate]);
 
   const filteredEvents = useMemo(() => {
     const query = searchTerm.toLowerCase();
@@ -241,40 +234,40 @@ export default function Dashboard() {
   }, [filteredEvents]);
 
   const handleJoin = async (eventId) => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_URL}/api/events/${eventId}/join`, {}, { headers: { Authorization: token } });
+      await api.post(`/api/events/${eventId}/join`);
       setJoinedEventIds(prev => new Set(prev).add(eventId));
       setEvents(prev => prev.map(event => event.id === eventId ? { ...event, attendee_count: Number(event.attendee_count || 0) + 1 } : event));
+      showToast('You joined this event.', 'success');
     } catch (err) {
-      alert(`${err.response?.data?.message || "Failed to join"}`);
+      showToast(getErrorMessage(err, 'Failed to join event.'), 'error');
     }
   };
 
   const handleBookmark = async (eventId) => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(`${API_URL}/api/events/${eventId}/bookmark`, {}, { headers: { Authorization: token } });
+      const res = await api.post(`/api/events/${eventId}/bookmark`);
       setEvents(prev => prev.map(event => event.id === eventId ? { ...event, is_bookmarked: res.data.bookmarked } : event));
-    } catch {
-      alert("Failed to update saved event.");
+      showToast(res.data.bookmarked ? 'Event saved.' : 'Event removed from saved.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to update saved event.'), 'error');
     }
   };
 
   const handleDelete = async (eventId) => {
     if (!confirm("Are you sure? This cannot be undone.")) return;
 
-    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`${API_URL}/api/events/${eventId}`, { headers: { Authorization: token } });
+      await api.delete(`/api/events/${eventId}`);
       setEvents(prev => prev.filter(event => event.id !== eventId));
       setJoinedEventIds(prev => {
         const next = new Set(prev);
         next.delete(eventId);
         return next;
       });
-    } catch {
-      alert("Failed to delete.");
+      showToast('Event deleted.', 'success');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to delete event.'), 'error');
     }
   };
 

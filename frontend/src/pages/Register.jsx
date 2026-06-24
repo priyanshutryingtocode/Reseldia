@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import api, { getErrorMessage } from '../lib/api';
+import { useToast } from '../components/toastContext';
 
 export default function Register() {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -27,10 +28,11 @@ export default function Register() {
     setError('');
 
     try {
-      await axios.post(`${API_URL}/api/auth/register`, formData);
+      await api.post('/api/auth/register', formData);
+      showToast('Registration successful. Please sign in.', 'success');
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(getErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
