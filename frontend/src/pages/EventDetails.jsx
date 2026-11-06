@@ -2,73 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { getErrorMessage } from '../lib/api';
 import { useToast } from '../components/toastContext';
-
-function CommentSection({ eventId }) {
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const res = await api.get(`/api/events/${eventId}/comments`);
-        setComments(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchComments();
-  }, [eventId]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    try {
-      const res = await api.post(`/api/events/${eventId}/comments`, { text: newComment });
-      setComments(prev => [...prev, res.data]);
-      setNewComment('');
-      showToast('Comment posted.', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to post comment.'), 'error');
-    }
-  };
-
-  return (
-    <div className="surface-soft rounded-lg p-6">
-      <h3 className="text-white font-serif-display text-xl mb-6">Discussion Board</h3>
-
-      <div className="space-y-4 max-h-96 overflow-y-auto pr-2 mb-6">
-        {comments.length === 0 ? (
-          <p className="text-gray-500 text-sm italic">No comments yet. Be the first to start the conversation.</p>
-        ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="bg-black/20 p-4 rounded-md border border-white/5">
-              <div className="flex justify-between items-baseline mb-2 gap-3">
-                <span className="text-blue-300 text-sm font-bold">{comment.full_name}</span>
-                <span className="text-gray-600 text-[10px] uppercase tracking-widest">{new Date(comment.created_at).toLocaleDateString()}</span>
-              </div>
-              <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
-            </div>
-          ))
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="relative">
-        <input
-          className="w-full bg-black/40 border border-white/10 rounded-md px-4 py-4 pr-20 text-sm text-white focus-ring"
-          placeholder="Ask a question or share your thoughts..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-        />
-        <button type="submit" className="absolute right-2 top-2 bottom-2 bg-white text-black px-4 rounded-md text-xs font-bold uppercase hover:bg-gray-200 transition-colors">
-          Post
-        </button>
-      </form>
-    </div>
-  );
-}
+import CommentSection from '../components/CommentSection';
 
 export default function EventDetails() {
   const { id } = useParams();
@@ -155,9 +89,17 @@ export default function EventDetails() {
   if (!event) return null;
 
   const canEdit = currentUserId === event.organizer_id || isAdmin;
+  const canJoin = event.status === 'approved';
   const attendeeCount = Number(event.attendee_count || 0);
   const spotsLeft = Math.max(Number(event.capacity || 0) - attendeeCount, 0);
   const capacityPercent = event.capacity ? Math.min(100, Math.round((attendeeCount / event.capacity) * 100)) : 0;
+  const statusBadge = {
+    approved: 'text-green-300 border-green-500/30 bg-green-500/10',
+    pending: 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10',
+    rejected: 'text-red-300 border-red-500/30 bg-red-500/10',
+    cancelled: 'text-gray-300 border-gray-500/30 bg-gray-500/10',
+    completed: 'text-blue-300 border-blue-500/30 bg-blue-500/10'
+  }[event.status] || 'text-gray-300 border-white/10 bg-white/5';
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -170,9 +112,14 @@ export default function EventDetails() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_10%,rgba(96,165,250,0.2),transparent_35%)]"></div>
 
         <div className="relative p-8 md:p-10 h-full flex flex-col justify-end min-h-[360px]">
-          <span className="inline-block w-fit px-3 py-1 mb-4 text-[10px] font-bold tracking-widest text-blue-200 uppercase bg-white/10 border border-white/15 rounded backdrop-blur-md">
-            {event.category || 'General'}
-          </span>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <span className="inline-block w-fit px-3 py-1 text-[10px] font-bold tracking-widest text-blue-200 uppercase bg-white/10 border border-white/15 rounded backdrop-blur-md">
+              {event.category || 'General'}
+            </span>
+            <span className={`inline-block w-fit px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded border backdrop-blur-md ${statusBadge}`}>
+              {event.status || 'unknown'}
+            </span>
+          </div>
           <h1 className="text-4xl md:text-6xl font-serif-display text-white mb-5 leading-tight">
             {event.title}
           </h1>
@@ -182,6 +129,15 @@ export default function EventDetails() {
           </div>
         </div>
       </div>
+
+      {event.status !== 'approved' && (
+        <div className="mb-8 border border-yellow-500/20 bg-yellow-500/10 text-yellow-100 rounded-lg px-5 py-4 text-sm">
+          {event.status === 'pending' && 'This event is waiting for admin approval and is hidden from the public feed.'}
+          {event.status === 'rejected' && 'This event was rejected by an admin. Edit it and resubmit for approval.'}
+          {event.status === 'cancelled' && 'This event has been cancelled.'}
+          {event.status === 'completed' && 'This event has already taken place.'}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
@@ -208,7 +164,7 @@ export default function EventDetails() {
 
             <div className="mb-6">
               <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">Organizer</p>
-              <p className="text-lg text-white">Resident ID #{event.organizer_id}</p>
+              <p className="text-lg text-white">{event.organizer_name || `Resident #${event.organizer_id}`}</p>
             </div>
 
             <div className="space-y-3">
@@ -216,9 +172,13 @@ export default function EventDetails() {
                 <button disabled className="w-full py-4 bg-green-500/20 text-green-400 border border-green-500/30 font-bold uppercase tracking-widest rounded-md cursor-default">
                   You are Going
                 </button>
+              ) : canJoin ? (
+                <button onClick={handleJoin} disabled={spotsLeft === 0} className={`w-full py-4 font-bold uppercase tracking-widest rounded-md transition-all ${spotsLeft === 0 ? 'bg-white/10 text-gray-500 cursor-not-allowed' : 'bg-white text-black hover:bg-gray-200'}`}>
+                  {spotsLeft === 0 ? 'Event Full' : 'Join Event'}
+                </button>
               ) : (
-                <button onClick={handleJoin} className="w-full py-4 bg-white text-black font-bold uppercase tracking-widest rounded-md hover:bg-gray-200 transition-all">
-                  Join Event
+                <button disabled className="w-full py-4 bg-white/5 text-gray-500 border border-white/10 font-bold uppercase tracking-widest rounded-md cursor-not-allowed">
+                  Not Open for RSVP
                 </button>
               )}
 

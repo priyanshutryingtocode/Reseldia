@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import CreateEvent from './pages/CreateEvent';
 import EventDetails from './pages/EventDetails'; 
 import { About, Privacy, Terms, Contact } from './pages/StaticPages';
+import NotFound from './pages/NotFound';
 
 import Layout from './components/Layout';
 import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute';
@@ -38,6 +39,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
             </Route>
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>

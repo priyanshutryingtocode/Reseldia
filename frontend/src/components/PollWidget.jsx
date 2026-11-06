@@ -37,7 +37,7 @@ export default function PollWidget() {
   if (loading) return <div className="h-full surface-soft rounded-lg animate-pulse"></div>;
   if (!poll) return null;
 
-  const totalVotes = poll.options.reduce((acc, curr) => acc + curr.vote_count, 0);
+  const totalVotes = poll.options.reduce((acc, curr) => acc + Number(curr.vote_count || 0), 0);
 
   return (
     <div className="surface p-5 rounded-lg h-full flex flex-col justify-between">
@@ -50,7 +50,7 @@ export default function PollWidget() {
         
         <div className="space-y-3">
             {poll.options.map(opt => {
-            const percent = totalVotes === 0 ? 0 : Math.round((opt.vote_count / totalVotes) * 100);
+            const percent = totalVotes === 0 ? 0 : Math.round((Number(opt.vote_count || 0) / totalVotes) * 100);
             const isVoted = poll.userVotedOptionId === opt.id;
 
             return (

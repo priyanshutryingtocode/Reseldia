@@ -18,6 +18,10 @@ const pool = new Pool(
         }
 );
 
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle database client', err.message);
+});
+
 pool.connect((err, client, release) => {
     if (err) {
         console.error('Database connection error', err.stack);

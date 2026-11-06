@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
@@ -15,7 +17,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 if (!process.env.JWT_SECRET) {
-    console.warn('JWT_SECRET is not set. Authenticated routes will reject requests.');
+    console.error('FATAL: JWT_SECRET is not set. Refusing to start.');
+    process.exit(1);
 }
 
 const allowedOrigins = (process.env.CORS_ORIGIN || '')
@@ -23,10 +26,24 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
     .map(origin => origin.trim())
     .filter(Boolean);
 
+app.use(helmet());
 app.use(cors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : true
 }));
-app.use(express.json());      
+app.use(express.json({ limit: '100kb' }));
+// Express 5 leaves req.body undefined for unparsed requests; controllers rely on it.
+app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts. Please try again later.' }
+});
 
 const initFeatureTables = require('./src/db/initFeatureTables');
 
@@ -35,7 +52,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/announcements', announcementRoutes);

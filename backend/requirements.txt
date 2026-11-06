@@ -1,7 +1,0 @@
-express
-pg
-cors
-dotenv
-bcrypt
-jsonwebtoken
-nodemon

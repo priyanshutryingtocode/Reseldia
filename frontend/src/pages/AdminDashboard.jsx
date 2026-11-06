@@ -159,7 +159,7 @@ const AdminDashboard = () => {
                       <span>{event.venue}</span>
                       <span>{event.attendee_count || 0}/{event.capacity}</span>
                     </div>
-                    <p className="text-[10px] text-gray-600 mt-2 font-mono">Organizer ID: {event.organizer_id}</p>
+                    <p className="text-[10px] text-gray-600 mt-2 font-mono">Organized by {event.organizer_name || `Resident #${event.organizer_id}`}</p>
                   </div>
 
                   <div className="flex gap-3">

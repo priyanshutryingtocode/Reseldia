@@ -16,6 +16,7 @@ export default function Register() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,16 +41,6 @@ export default function Register() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#0a0a0c] text-white py-10">
-      
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
-        .font-serif-display { font-family: 'Playfair Display', serif; }
-        .font-sans-body { font-family: 'Inter', sans-serif; }
-        .bg-grain {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E");
-        }
-      `}</style>
 
 
       <div className="absolute inset-0 bg-gradient-to-br from-[#0f1115] via-[#13161c] to-[#0a0a0c]"></div>
@@ -74,10 +65,11 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="space-y-5 font-sans-body">
 
           <div className="space-y-1">
-            <label className="text-gray-400 text-xs tracking-widest uppercase ml-1">Full Name</label>
-            <input 
-              name="full_name" 
-              onChange={handleChange} 
+            <label htmlFor="full_name" className="text-gray-400 text-xs tracking-widest uppercase ml-1">Full Name</label>
+            <input
+              id="full_name"
+              name="full_name"
+              onChange={handleChange}
               required 
               className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all"
               placeholder="John Doe"
@@ -85,35 +77,48 @@ export default function Register() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-gray-400 text-xs tracking-widest uppercase ml-1">Residence / Flat No.</label>
-            <input 
-              name="flat_number" 
-              onChange={handleChange} 
+            <label htmlFor="flat_number" className="text-gray-400 text-xs tracking-widest uppercase ml-1">Residence / Flat No.</label>
+            <input
+              id="flat_number"
+              name="flat_number"
+              onChange={handleChange}
               placeholder="e.g. Unit 402" 
               className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-gray-400 text-xs tracking-widest uppercase ml-1">Email</label>
-            <input 
-              type="email" 
-              name="email" 
-              onChange={handleChange} 
+            <label htmlFor="email" className="text-gray-400 text-xs tracking-widest uppercase ml-1">Email</label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              onChange={handleChange}
               required 
               className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-gray-400 text-xs tracking-widest uppercase ml-1">Set Password</label>
-            <input 
-              type="password" 
-              name="password" 
-              onChange={handleChange} 
-              required 
-              className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all"
-            />
+            <label htmlFor="password" className="text-gray-400 text-xs tracking-widest uppercase ml-1">Set Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                onChange={handleChange}
+                required
+                minLength={8}
+                className="w-full bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-black/40 transition-all"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-3 text-xs text-gray-500 hover:text-white uppercase tracking-wider transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <button 

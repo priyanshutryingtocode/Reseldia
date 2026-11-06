@@ -2,84 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NewsCarousel from '../components/NewsCarousel';
 import PollWidget from '../components/PollWidget';
+import CommentSection from '../components/CommentSection';
 import api, { getErrorMessage } from '../lib/api';
 import { useToast } from '../components/toastContext';
-
-function CommentSection({ eventId }) {
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchComments = async () => {
-      try {
-        const res = await api.get(`/api/events/${eventId}/comments`);
-        setComments(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchComments();
-  }, [eventId, isOpen]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    try {
-      const res = await api.post(`/api/events/${eventId}/comments`, { text: newComment });
-      setComments(prev => [...prev, res.data]);
-      setNewComment('');
-      showToast('Comment posted.', 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to post comment.'), 'error');
-    }
-  };
-
-  return (
-    <div className="mt-4 border-t border-white/5 pt-4">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="text-[10px] text-blue-300 hover:text-white uppercase tracking-wider mb-3 transition-colors"
-      >
-        {isOpen ? 'Close discussion' : 'Discuss'}
-      </button>
-
-      {isOpen && (
-        <div className="animate-fade-in">
-          <div className="space-y-3 max-h-40 overflow-y-auto mb-4 pr-2">
-            {comments.length === 0 && <p className="text-gray-500 text-xs italic">No comments yet.</p>}
-            {comments.map((comment) => (
-              <div key={comment.id} className="bg-black/20 p-3 rounded-md text-sm border border-white/5">
-                <div className="flex justify-between items-baseline mb-1 gap-3">
-                  <span className="text-gray-300 text-xs font-bold">{comment.full_name}</span>
-                  <span className="text-gray-600 text-[10px]">{new Date(comment.created_at).toLocaleDateString()}</span>
-                </div>
-                <p className="text-gray-400 text-xs">{comment.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              className="flex-1 bg-black/40 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus-ring"
-              placeholder="Type a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-            />
-            <button type="submit" className="text-[10px] bg-white text-black px-3 py-1 rounded-md font-bold uppercase hover:bg-gray-200 transition-colors">
-              Post
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function EventCard({ event, isJoined, canDelete, onJoin, onDelete, onBookmark, onOpen }) {
   const spotsLeft = Math.max(Number(event.capacity || 0) - Number(event.attendee_count || 0), 0);
@@ -149,7 +74,7 @@ function EventCard({ event, isJoined, canDelete, onJoin, onDelete, onBookmark, o
           )}
         </div>
 
-        <CommentSection eventId={event.id} />
+        <CommentSection eventId={event.id} collapsible />
       </div>
     </div>
   );

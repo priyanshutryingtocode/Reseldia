@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 
 const FALLBACK_ITEMS = [
   {
@@ -22,15 +22,11 @@ export default function NewsCarousel() {
   const [items, setItems] = useState(FALLBACK_ITEMS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`${API_URL}/api/announcements`, {
-          headers: { Authorization: token }
-        });
+        const res = await api.get('/api/announcements');
         if (res.data.length > 0) {
           setItems(res.data);
           setCurrentIndex(0);
@@ -41,7 +37,7 @@ export default function NewsCarousel() {
     };
 
     fetchAnnouncements();
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     if (isPaused) return;
@@ -70,6 +66,13 @@ export default function NewsCarousel() {
             <img
               src={item.image_url || FALLBACK_ITEMS[index % FALLBACK_ITEMS.length].image_url}
               alt={item.title}
+              loading="lazy"
+              onError={(event) => {
+                const fallback = FALLBACK_ITEMS[index % FALLBACK_ITEMS.length].image_url;
+                if (event.currentTarget.src !== fallback) {
+                  event.currentTarget.src = fallback;
+                }
+              }}
               className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${
                 index === currentIndex ? 'scale-110' : 'scale-100'
               }`}
@@ -107,16 +110,9 @@ export default function NewsCarousel() {
       <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5 z-20">
         <div
           key={currentIndex}
-          className={`h-full bg-blue-500/50 ${!isPaused ? 'animate-[progress_5s_linear]' : 'w-full'}`}
+          className={`h-full bg-blue-500/50 ${!isPaused ? 'animate-progress' : 'w-full'}`}
         ></div>
       </div>
-
-      <style>{`
-        @keyframes progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </div>
   );
 }

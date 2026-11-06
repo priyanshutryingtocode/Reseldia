@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 
 export default function Profile() {
   const [myJoinedEvents, setMyJoinedEvents] = useState([]);
@@ -15,7 +15,6 @@ export default function Profile() {
   const [currentEventTitle, setCurrentEventTitle] = useState('');
 
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -26,15 +25,14 @@ export default function Profile() {
 
     const fetchData = async () => {
       try {
-        const config = { headers: { Authorization: token } };
-        const userRes = await axios.get(`${API_URL}/api/auth/me`, config);
+        const userRes = await api.get('/api/auth/me');
         setUser(userRes.data);
 
         const sectionRequests = [
-          ['attending events', axios.get(`${API_URL}/api/events/my-events`, config)],
-          ['created events', axios.get(`${API_URL}/api/events/created-by-me`, config)],
-          ['saved events', axios.get(`${API_URL}/api/events/bookmarked`, config)],
-          ['profile stats', axios.get(`${API_URL}/api/events/stats/me`, config)]
+          ['attending events', api.get('/api/events/my-events')],
+          ['created events', api.get('/api/events/created-by-me')],
+          ['saved events', api.get('/api/events/bookmarked')],
+          ['profile stats', api.get('/api/events/stats/me')]
         ];
 
         const [joinedRes, createdRes, savedRes, statsRes] = await Promise.allSettled(
@@ -58,18 +56,12 @@ export default function Profile() {
         }
       } catch (err) {
         console.error(err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
-          navigate('/login');
-          return;
-        }
         setProfileError('Unable to load your profile.');
       }
     };
 
     fetchData();
-  }, [API_URL, navigate]);
+  }, [navigate]);
 
   const handleViewAttendees = async (eventId, title) => {
     setIsModalOpen(true);
@@ -77,11 +69,8 @@ export default function Profile() {
     setCurrentEventTitle(title);
     setGuestList([]);
 
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.get(`${API_URL}/api/events/${eventId}/attendees`, {
-        headers: { Authorization: token }
-      });
+      const res = await api.get(`/api/events/${eventId}/attendees`);
       setGuestList(res.data);
     } catch {
       console.error("Failed to fetch guest list");
@@ -94,6 +83,8 @@ export default function Profile() {
     switch (status) {
       case 'approved': return <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] font-bold tracking-widest uppercase rounded-full">Live</span>;
       case 'rejected': return <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold tracking-widest uppercase rounded-full">Rejected</span>;
+      case 'cancelled': return <span className="px-3 py-1 bg-gray-500/10 border border-gray-500/30 text-gray-400 text-[10px] font-bold tracking-widest uppercase rounded-full">Cancelled</span>;
+      case 'completed': return <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-[10px] font-bold tracking-widest uppercase rounded-full">Completed</span>;
       default: return <span className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] font-bold tracking-widest uppercase rounded-full">Pending</span>;
     }
   };

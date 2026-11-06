@@ -5,8 +5,10 @@ const canManageActivity = (activity, user) => user.role === 'admin' || activity.
 
 const eventSelect = `
     SELECT a.*,
+        u.full_name AS organizer_name,
         (SELECT COUNT(*)::int FROM registrations r WHERE r.activity_id = a.id) AS attendee_count
     FROM activities a
+    LEFT JOIN users u ON u.id = a.organizer_id
 `;
 
 const createNotification = async (client, { userId, type, title, message, activityId = null }) => {
@@ -16,6 +18,19 @@ const createNotification = async (client, { userId, type, title, message, activi
         [userId, type, title, message, activityId]
     );
 };
+
+const notifyAttendees = async (client, activity, { type, title, message, excludeUserId = null }) => {
+    await client.query(
+        `INSERT INTO notifications (user_id, type, title, message, activity_id)
+         SELECT r.user_id, $2, $3, $4, $5
+         FROM registrations r
+         WHERE r.activity_id = $1 AND r.user_id <> $6`,
+        [activity.id, type, title, message, activity.id, excludeUserId]
+    );
+};
+
+const canViewActivity = (activity, user) =>
+    activity.status === 'approved' || canManageActivity(activity, user);
 
 const getAllEvents = async (req, res) => {
     const userId = req.user?.user_id || null;
@@ -40,7 +55,7 @@ const getAllEvents = async (req, res) => {
             is_bookmarked: bookmarkedIds.has(event.id)
         })));
     } catch (err) {
-        console.error('Failed to load joined events:', err.message);
+        console.error('Failed to load events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -54,7 +69,10 @@ const getEventById = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            console.warn(`Event ${req.params.id} not found.`);
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        if (!canViewActivity(result.rows[0], req.user)) {
             return res.status(404).json({ message: "Event not found" });
         }
 
@@ -65,7 +83,7 @@ const getEventById = async (req, res) => {
 
         res.json({ ...result.rows[0], is_bookmarked: bookmark.rows.length > 0 });
     } catch (err) {
-        console.error('Failed to load created events:', err.message);
+        console.error('Failed to load event:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -76,6 +94,10 @@ const createEvent = async (req, res) => {
 
     if (!title?.trim() || !event_date || !venue?.trim()) {
         return res.status(400).json({ message: "Title, date, and venue are required." });
+    }
+
+    if (Number.isNaN(new Date(event_date).getTime())) {
+        return res.status(400).json({ message: "Event date must be a valid date and time." });
     }
 
     if (!isPositiveInteger(capacity)) {
@@ -110,7 +132,7 @@ const createEvent = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Failed to load bookmarked events:', err.message);
+        console.error('Failed to create event:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -120,6 +142,10 @@ const updateEvent = async (req, res) => {
 
     if (!title?.trim() || !event_date || !venue?.trim()) {
         return res.status(400).json({ message: "Title, date, and venue are required." });
+    }
+
+    if (Number.isNaN(new Date(event_date).getTime())) {
+        return res.status(400).json({ message: "Event date must be a valid date and time." });
     }
 
     if (!isPositiveInteger(capacity)) {
@@ -169,27 +195,48 @@ const updateEvent = async (req, res) => {
             event: result.rows[0]
         });
     } catch (err) {
-        console.error('Failed to load profile stats:', err.message);
+        console.error('Failed to update event:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
 
 const deleteEvent = async (req, res) => {
+    const client = await pool.connect();
+
     try {
-        const eventCheck = await pool.query('SELECT * FROM activities WHERE id = $1', [req.params.id]);
+        await client.query('BEGIN');
+
+        const eventCheck = await client.query(
+            'SELECT * FROM activities WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
         if (eventCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ message: "Event not found" });
         }
 
-        if (!canManageActivity(eventCheck.rows[0], req.user)) {
+        const activity = eventCheck.rows[0];
+        if (!canManageActivity(activity, req.user)) {
+            await client.query('ROLLBACK');
             return res.status(403).json({ message: "You are not authorized to delete this event." });
         }
 
-        await pool.query('DELETE FROM activities WHERE id = $1', [req.params.id]);
+        await notifyAttendees(client, activity, {
+            type: 'event_deleted',
+            title: 'Event deleted',
+            message: `The event "${activity.title}" was deleted.`,
+            excludeUserId: req.user.user_id
+        });
+
+        await client.query('DELETE FROM activities WHERE id = $1', [req.params.id]);
+        await client.query('COMMIT');
         res.json({ message: "Event deleted successfully." });
     } catch (err) {
-        console.error(err.message);
+        await client.query('ROLLBACK');
+        console.error('Failed to delete event:', err.message);
         res.status(500).json({ error: "Server error" });
+    } finally {
+        client.release();
     }
 };
 
@@ -202,7 +249,7 @@ const getPendingEvents = async (req, res) => {
         );
         res.json(pendingEvents.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load pending events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -213,13 +260,17 @@ const approveEvent = async (req, res) => {
     try {
         await client.query('BEGIN');
         const result = await client.query(
-            "UPDATE activities SET status = 'approved' WHERE id = $1 RETURNING *",
+            "UPDATE activities SET status = 'approved' WHERE id = $1 AND status = 'pending' RETURNING *",
             [req.params.id]
         );
 
         if (result.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(404).json({ message: "Event not found" });
+            const exists = await pool.query('SELECT status FROM activities WHERE id = $1', [req.params.id]);
+            if (exists.rows.length === 0) {
+                return res.status(404).json({ message: "Event not found" });
+            }
+            return res.status(409).json({ message: `Only pending events can be approved. This event is ${exists.rows[0].status}.` });
         }
 
         const activity = result.rows[0];
@@ -235,7 +286,7 @@ const approveEvent = async (req, res) => {
         res.json({ message: "Event approved.", event: activity });
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error(err.message);
+        console.error('Failed to approve event:', err.message);
         res.status(500).json({ error: "Server error" });
     } finally {
         client.release();
@@ -248,13 +299,17 @@ const rejectEvent = async (req, res) => {
     try {
         await client.query('BEGIN');
         const result = await client.query(
-            "UPDATE activities SET status = 'rejected' WHERE id = $1 RETURNING *",
+            "UPDATE activities SET status = 'rejected' WHERE id = $1 AND status = 'pending' RETURNING *",
             [req.params.id]
         );
 
         if (result.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(404).json({ message: "Event not found" });
+            const exists = await pool.query('SELECT status FROM activities WHERE id = $1', [req.params.id]);
+            if (exists.rows.length === 0) {
+                return res.status(404).json({ message: "Event not found" });
+            }
+            return res.status(409).json({ message: `Only pending events can be rejected. This event is ${exists.rows[0].status}.` });
         }
 
         const activity = result.rows[0];
@@ -270,7 +325,7 @@ const rejectEvent = async (req, res) => {
         res.json({ message: "Event rejected.", event: activity });
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error(err.message);
+        console.error('Failed to reject event:', err.message);
         res.status(500).json({ error: "Server error" });
     } finally {
         client.release();
@@ -300,11 +355,70 @@ const updateEventLifecycleStatus = async (req, res, nextStatus, message) => {
     }
 };
 
-const cancelEvent = (req, res) => {
-    return updateEventLifecycleStatus(req, res, 'cancelled', 'Event cancelled.');
+const cancelEvent = async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const eventCheck = await client.query(
+            'SELECT * FROM activities WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
+        if (eventCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        const existing = eventCheck.rows[0];
+        if (!canManageActivity(existing, req.user)) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ message: "You are not authorized to update this event." });
+        }
+
+        if (existing.status === 'cancelled') {
+            await client.query('ROLLBACK');
+            return res.status(409).json({ message: "This event is already cancelled." });
+        }
+        if (existing.status === 'completed') {
+            await client.query('ROLLBACK');
+            return res.status(409).json({ message: "A completed event cannot be cancelled." });
+        }
+
+        const result = await client.query(
+            "UPDATE activities SET status = 'cancelled' WHERE id = $1 RETURNING *",
+            [req.params.id]
+        );
+
+        await notifyAttendees(client, existing, {
+            type: 'event_cancelled',
+            title: 'Event cancelled',
+            message: `The event "${existing.title}" was cancelled.`,
+            excludeUserId: req.user.user_id
+        });
+
+        await client.query('COMMIT');
+        res.json({ message: "Event cancelled.", event: result.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Failed to cancel event:', err.message);
+        res.status(500).json({ error: "Server error" });
+    } finally {
+        client.release();
+    }
 };
 
-const completeEvent = (req, res) => {
+const completeEvent = async (req, res) => {
+    try {
+        const eventCheck = await pool.query('SELECT status FROM activities WHERE id = $1', [req.params.id]);
+        if (eventCheck.rows.length > 0 && eventCheck.rows[0].status !== 'approved') {
+            return res.status(409).json({ message: `Only live events can be marked completed. This event is ${eventCheck.rows[0].status}.` });
+        }
+    } catch (err) {
+        console.error('Failed to verify event before completion:', err.message);
+        return res.status(500).json({ error: "Server error" });
+    }
+
     return updateEventLifecycleStatus(req, res, 'completed', 'Event marked as completed.');
 };
 
@@ -356,7 +470,7 @@ const joinEvent = async (req, res) => {
         if (err.code === '23505') {
             return res.status(400).json({ message: "You have already joined this event." });
         }
-        console.error(err.message);
+        console.error('Failed to join event:', err.message);
         res.status(500).json({ error: "Server error" });
     } finally {
         client.release();
@@ -374,7 +488,7 @@ const getMyEvents = async (req, res) => {
         );
         res.json(myEvents.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load joined events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -389,13 +503,18 @@ const getMyCreatedEvents = async (req, res) => {
         );
         res.json(result.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load created events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
 
 const getEventComments = async (req, res) => {
     try {
+        const eventCheck = await pool.query('SELECT * FROM activities WHERE id = $1', [req.params.id]);
+        if (eventCheck.rows.length === 0 || !canViewActivity(eventCheck.rows[0], req.user)) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
         const comments = await pool.query(
             `SELECT c.id, c.text, c.created_at, u.full_name
              FROM comments c
@@ -406,7 +525,7 @@ const getEventComments = async (req, res) => {
         );
         res.json(comments.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load comments:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -421,7 +540,7 @@ const postComment = async (req, res) => {
     try {
         await client.query('BEGIN');
         const eventRes = await client.query('SELECT * FROM activities WHERE id = $1', [req.params.id]);
-        if (eventRes.rows.length === 0) {
+        if (eventRes.rows.length === 0 || !canViewActivity(eventRes.rows[0], req.user)) {
             await client.query('ROLLBACK');
             return res.status(404).json({ message: "Event not found" });
         }
@@ -454,7 +573,7 @@ const postComment = async (req, res) => {
         res.status(201).json(formattedComment.rows[0]);
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error(err.message);
+        console.error('Failed to post comment:', err.message);
         res.status(500).json({ error: "Server error" });
     } finally {
         client.release();
@@ -481,7 +600,7 @@ const getEventAttendees = async (req, res) => {
         );
         res.json(attendees.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load attendees:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -504,7 +623,10 @@ const toggleBookmark = async (req, res) => {
         await pool.query('INSERT INTO event_bookmarks (user_id, activity_id) VALUES ($1, $2)', [userId, id]);
         res.status(201).json({ bookmarked: true });
     } catch (err) {
-        console.error(err.message);
+        if (err.code === '23503') {
+            return res.status(404).json({ message: "Event not found" });
+        }
+        console.error('Failed to toggle bookmark:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -520,7 +642,7 @@ const getBookmarkedEvents = async (req, res) => {
         );
         res.json(result.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load saved events:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -538,7 +660,7 @@ const getMyStats = async (req, res) => {
         );
         res.json(result.rows[0]);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load stats:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };

@@ -30,7 +30,10 @@ const registerUser = async (req, res) => {
         res.status(201).json({ message: "Registration successful.", user: newUser.rows[0] });
 
     } catch (err) {
-        console.error(err.message);
+        if (err.code === '23505') {
+            return res.status(409).json({ error: "User already exists." });
+        }
+        console.error('Failed to register user:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -56,6 +59,11 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
+        if (!process.env.JWT_SECRET) {
+            console.error('FATAL: JWT_SECRET is not configured.');
+            return res.status(500).json({ error: "Authentication is not configured." });
+        }
+
         const token = jwt.sign(
             { user_id: user.rows[0].id, role: user.rows[0].role },
             process.env.JWT_SECRET,
@@ -73,7 +81,7 @@ const loginUser = async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to log in:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
@@ -91,7 +99,7 @@ const getMe = async (req, res) => {
 
         res.json(user.rows[0]);
     } catch (err) {
-        console.error(err.message);
+        console.error('Failed to load profile:', err.message);
         res.status(500).json({ error: "Server error" });
     }
 };
